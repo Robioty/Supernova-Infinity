@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Gravity Merge Master</title>
+    <title>Gravity Merge Elite</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         html, body { 
@@ -21,26 +21,32 @@
         .menu-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px; border-radius: 12px; cursor: pointer; pointer-events: auto; font-size: 1.2em; backdrop-filter: blur(10px); }
         
         #progress-wrapper { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.05); z-index: 20; }
-        #progress-fill { width: 0%; height: 100%; background: linear-gradient(to right, #38bdf8, #818cf8); transition: width 0.4s ease; box-shadow: 0 0 10px #38bdf8; }
+        #progress-fill { width: 0%; height: 100%; background: linear-gradient(to right, #38bdf8, #f43f5e); transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 10px #38bdf8; }
 
         .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: floatUp 0.6s ease-out forwards; }
         @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
 
         .glass-panel { 
-            position: absolute; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.3); 
+            position: absolute; background: rgba(15, 23, 42, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); 
             border-radius: 20px; padding: 20px; display: none; flex-direction: column; align-items: center;
-            z-index: 100; backdrop-filter: blur(15px); left: 50%; top: 50%; transform: translate(-50%, -50%);
-            width: 280px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            z-index: 100; backdrop-filter: blur(20px); left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: 280px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
         }
         
-        .leader-row { width: 100%; display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-family: monospace; }
-        #name-input { background: rgba(255,255,255,0.1); border: 1px solid #38bdf8; color: white; text-align: center; font-size: 1.5em; width: 100px; border-radius: 8px; margin: 10px 0; text-transform: uppercase; }
+        .toggle { width: 44px; height: 22px; background: #334155; border-radius: 20px; position: relative; cursor: pointer; pointer-events: auto; }
+        .toggle.on { background: #38bdf8; }
+        .toggle::after { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
+        .toggle.on::after { left: 24px; }
+
+        .leader-row { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: monospace; font-size: 1em; }
+        .crown { color: #fbbf24; margin-right: 5px; font-size: 1.1em; }
 
         #side-controls { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        #cooldown-bar-wrap { width: 6px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; position: relative; display: none; }
-        #cooldown-fill { width: 100%; height: 0%; background: #38bdf8; position: absolute; bottom: 0; transition: height 0.1s linear; }
+        #cooldown-bar-wrap { width: 8px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; position: relative; display: none; border: 1px solid rgba(255,255,255,0.05); }
+        #cooldown-fill { width: 100%; height: 0%; background: #38bdf8; position: absolute; bottom: 0; }
 
-        .btn { background: #38bdf8; color: white; border: none; padding: 12px 30px; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; }
+        .btn { background: #38bdf8; color: white; border: none; padding: 14px 30px; border-radius: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; pointer-events: auto; transition: transform 0.1s; }
+        .btn:active { transform: scale(0.95); }
         canvas { display: block; margin: 0 auto; background: transparent !important; }
     </style>
 </head>
@@ -50,41 +56,50 @@
         <button class="menu-btn" onclick="toggleSettings()">⚙️</button>
         <div>
             <div id="score-label" style="font-size: 2.8em; font-weight: 900; line-height: 1;">0</div>
-            <div style="font-size: 0.75em; opacity: 0.6;">BEST: <span id="high-score-ui">0</span></div>
+            <div style="font-size: 0.75em; opacity: 0.6; letter-spacing: 1px; font-weight: bold;">BEST: <span id="high-score-ui">0</span></div>
         </div>
     </div>
 
     <div id="settings-panel" class="glass-panel">
-        <div style="width:100%; margin-bottom:15px; font-weight:bold; border-bottom:1px solid #333">SETTINGS</div>
-        <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;"><span>Sound</span><div id="audio-toggle" class="toggle on" onclick="updateSetting('audio')"></div></div>
-        <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;"><span>Shake</span><div id="shake-toggle" class="toggle on" onclick="updateSetting('shake')"></div></div>
-        <button class="btn" style="background:#ef4444" onclick="location.reload()">RESTART</button>
+        <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); width: 100%; padding-bottom: 10px; text-align: center; letter-spacing: 2px;">SETTINGS</h3>
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <span>SFX Audio</span><div id="audio-toggle" class="toggle on" onclick="updateSetting('audio')"></div>
+        </div>
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <span>Visual Shake</span><div id="shake-toggle" class="toggle on" onclick="updateSetting('shake')"></div>
+        </div>
+        <button class="btn" style="background:#ef4444" onclick="location.reload()">RESTART GAME</button>
     </div>
 
     <div id="game-over-panel" class="glass-panel">
-        <h2 id="end-msg" style="margin:0; color:#38bdf8;">GAME OVER</h2>
-        <div id="new-high-score-ui" style="display:none; text-align:center;">
-            <p>NEW HIGH SCORE!</p>
-            <input type="text" id="name-input" maxlength="3" placeholder="AAA">
+        <h2 id="end-msg" style="margin:0; color:#38bdf8; font-size: 2em;">GAME OVER</h2>
+        <div id="new-high-score-ui" style="display:none; text-align:center; width: 100%;">
+            <p style="margin:15px 0 5px; font-weight: bold; color: #fbbf24;">NEW RECORD!</p>
+            <input type="text" id="name-input" maxlength="3" placeholder="AAA" style="background:rgba(255,255,255,0.1); border:2px solid #38bdf8; color:white; text-align:center; font-size:1.8em; width:120px; border-radius:12px; margin-bottom:15px; outline: none; text-transform: uppercase;">
         </div>
-        <div id="leaderboard-list" style="width:100%; margin:15px 0;"></div>
+        <div id="lb-list-end" style="width:100%; margin:10px 0;"></div>
         <button class="btn" onclick="saveAndRestart()">PLAY AGAIN</button>
     </div>
 
-    <div id="overlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.9); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <h1 style="font-size: 3.5em; text-align:center;">GRAVITY<br><span style="color:#38bdf8">MERGE</span></h1>
-        <button class="btn" onclick="initGame()" style="width:200px; padding:20px;">START</button>
+    <div id="overlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.98); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
+        <h1 style="font-size: 4em; text-align:center; margin: 0 0 10px 0; line-height: 0.9;">GRAVITY<br><span style="color:#38bdf8">MERGE</span></h1>
+        
+        <div style="width: 280px; background: rgba(255,255,255,0.03); border-radius: 20px; padding: 20px; margin-bottom: 25px; border: 1px solid rgba(56, 189, 248, 0.15); backdrop-filter: blur(10px);">
+            <div style="font-size: 0.8em; opacity: 0.6; text-align: center; margin-bottom: 12px; letter-spacing: 3px; font-weight: bold;">HALL OF FAME</div>
+            <div id="lb-list-home"></div>
+        </div>
+
+        <button class="btn" onclick="initGame()" style="width:240px; padding:22px; font-size: 1.4em; box-shadow: 0 10px 40px rgba(56, 189, 248, 0.4);">PLAY NOW</button>
     </div>
 
     <div id="progress-wrapper"><div id="progress-fill"></div></div>
     
     <div id="side-controls">
         <div id="cooldown-bar-wrap"><div id="cooldown-fill"></div></div>
-        <button id="g-toggle" class="menu-btn" style="display:none; width:54px; height:54px; border-radius:50%; color:#38bdf8; border:2px solid #38bdf8;" onclick="flipGravity()">G</button>
+        <button id="g-toggle" class="menu-btn" style="display:none; width:60px; height:60px; border-radius:50%; color:#38bdf8; border:3px solid #38bdf8; font-weight: 900; font-size: 1.4em;" onclick="flipGravity()">G</button>
     </div>
 
 <script>
-    // --- AUDIO SYSTEM ---
     const AudioEngine = {
         ctx: null,
         init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -94,16 +109,16 @@
             const gain = this.ctx.createGain();
             osc.type = type;
             osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(freq / 2, this.ctx.currentTime + duration);
+            osc.frequency.exponentialRampToValueAtTime(freq / 1.5, this.ctx.currentTime + duration);
             gain.gain.setValueAtTime(vol, this.ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
             osc.connect(gain); gain.connect(this.ctx.destination);
             osc.start(); osc.stop(this.ctx.currentTime + duration);
         },
-        drop() { this.play(150, 'sine', 0.2, 0.2); },
-        merge(lvl) { this.play(200 + (lvl * 80), 'triangle', 0.3, 0.15); },
-        flip() { this.play(80, 'sawtooth', 0.5, 0.1); },
-        combo() { this.play(800, 'sine', 0.1, 0.2); }
+        drop() { this.play(140, 'sine', 0.15, 0.15); },
+        merge(lvl) { this.play(180 + (lvl * 90), 'triangle', 0.4, 0.15); },
+        flip() { this.play(70, 'sawtooth', 0.6, 0.1); },
+        combo() { this.play(900, 'sine', 0.1, 0.2); }
     };
 
     const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
@@ -111,8 +126,8 @@
     const width = Math.min(window.innerWidth, 450), height = window.innerHeight;
     const render = Render.create({ element: document.body, engine, options: { width, height, wireframes: false, background: 'transparent', pixelRatio: window.devicePixelRatio } });
 
-    let settings = { shake: true, audio: true, laser: true };
-    let gameStats = { score: 0, combo: 0, lastMergeTime: 0 };
+    let settings = { shake: true, audio: true };
+    let gameStats = { score: 0, combo: 0, lastMergeTime: 0, maxLvlReached: 0 };
     let nextLevel = 0, currentX = width/2, isGameOver = false, isStarted = false, isGravityFlipped = false, cooldownActive = false;
     let particles = [];
     const COOLDOWN_TIME = 5000;
@@ -124,50 +139,25 @@
         { r: 110, col: '#ef4444', score: 150 }, { r: 140, col: '#0f172a', score: 1000 }
     ];
 
-    function toggleSettings() {
-        const p = document.getElementById('settings-panel');
-        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
-    }
-
     function updateSetting(type) {
         settings[type] = !settings[type];
         document.getElementById(type + '-toggle').classList.toggle('on');
     }
 
-    function createParticles(x, y, color) {
-        for (let i = 0; i < 10; i++) {
-            particles.push({
-                x, y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, 
-                life: 1.0, color 
-            });
-        }
-    }
-
-    function spawnFloatingText(x, y, text, color) {
-        const el = document.createElement('div');
-        el.className = 'floating-text';
-        el.style.left = x + 'px'; el.style.top = y + 'px';
-        el.style.color = color; el.innerText = text;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 600);
-    }
-
-    function triggerFlash() {
-        if (!settings.shake) return;
-        const f = document.getElementById('flash');
-        f.style.opacity = '0.2';
-        setTimeout(() => f.style.opacity = '0', 100);
+    function toggleSettings() {
+        const p = document.getElementById('settings-panel');
+        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
     }
 
     function spawn(x, y, lvl, isMerge = false) {
         const t = BALL_TYPES[lvl];
         const b = Bodies.circle(x, y, t.r, {
             restitution: 0.3, friction: 0.1, 
-            render: { fillStyle: t.col }, plugin: { level: lvl, created: Date.now() }
+            render: { fillStyle: t.col }, plugin: { level: lvl }
         });
         if (isMerge) {
             AudioEngine.merge(lvl);
-            createParticles(x, y, t.col);
+            for(let i=0; i<12; i++) particles.push({x, y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12, life:1, col:t.col});
             if (lvl > 4) triggerFlash();
         } else {
             AudioEngine.drop();
@@ -180,15 +170,9 @@
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('g-toggle').style.display = 'block';
         document.getElementById('cooldown-bar-wrap').style.display = 'block';
-        updateUIBest();
         isStarted = true;
         Render.run(render);
         Runner.run(Runner.create(), engine);
-    }
-
-    function updateUIBest() {
-        const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
-        document.getElementById('high-score-ui').innerText = lb[0]?.score || 0;
     }
 
     function flipGravity() {
@@ -197,19 +181,14 @@
         engine.gravity.y *= -1; 
         isGravityFlipped = !isGravityFlipped;
         triggerFlash();
-        
         cooldownActive = true;
         const fill = document.getElementById('cooldown-fill');
         let start = Date.now();
         const timer = setInterval(() => {
             let elapsed = Date.now() - start;
             fill.style.height = (100 - (elapsed/COOLDOWN_TIME)*100) + "%";
-            if (elapsed >= COOLDOWN_TIME) {
-                clearInterval(timer);
-                cooldownActive = false;
-                fill.style.height = "0%";
-            }
-        }, 50);
+            if (elapsed >= COOLDOWN_TIME) { clearInterval(timer); cooldownActive = false; fill.style.height = "0%"; }
+        }, 16);
     }
 
     Events.on(engine, 'collisionStart', (e) => {
@@ -218,9 +197,8 @@
             if (a.plugin?.level === b.plugin?.level && a.plugin?.level !== undefined) {
                 const lvl = a.plugin.level + 1;
                 if (lvl >= BALL_TYPES.length) { endGame("VICTORY!"); return; }
-                
                 const now = Date.now();
-                gameStats.combo = (now - gameStats.lastMergeTime < 700) ? gameStats.combo + 1 : 1;
+                gameStats.combo = (now - gameStats.lastMergeTime < 800) ? gameStats.combo + 1 : 1;
                 gameStats.lastMergeTime = now;
                 if(gameStats.combo > 1) AudioEngine.combo();
                 
@@ -228,38 +206,47 @@
                 gameStats.score += points;
                 document.getElementById('score-label').innerText = gameStats.score;
                 
-                spawnFloatingText(a.position.x, a.position.y, `+${points}${gameStats.combo > 1 ? ' x' + gameStats.combo : ''}`, BALL_TYPES[lvl].col);
-                
+                const el = document.createElement('div');
+                el.className = 'floating-text';
+                el.style.left = a.position.x + 'px'; el.style.top = a.position.y + 'px';
+                el.style.color = BALL_TYPES[lvl].col; el.innerText = `+${points}${gameStats.combo>1?' x'+gameStats.combo:''}`;
+                document.body.appendChild(el); setTimeout(() => el.remove(), 600);
+
                 Composite.remove(engine.world, [a, b]);
-                spawn((a.position.x + b.position.x) / 2, (a.position.y + b.position.y) / 2, lvl, true);
-                document.getElementById('progress-fill').style.width = (lvl / 7 * 100) + '%';
+                spawn((a.position.x+b.position.x)/2, (a.position.y+b.position.y)/2, lvl, true);
+                
+                if(lvl > gameStats.maxLvlReached) {
+                    gameStats.maxLvlReached = lvl;
+                    document.getElementById('progress-fill').style.width = (lvl / 7 * 100) + '%';
+                }
             }
         });
     });
 
-    function endGame(msg = "GAME OVER") {
+    function renderLeaderboard(targetId) {
+        const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
+        document.getElementById(targetId).innerHTML = lb.map((e, i) => `
+            <div class="leader-row">
+                <span>${i===0?'<span class="crown">👑</span>':''}#${i+1} ${e.name}</span>
+                <span style="color:${i===0?'#fbbf24':'white'}">${e.score.toLocaleString()}</span>
+            </div>
+        `).join('') || '<div style="opacity:0.3;text-align:center;padding:10px;">No records yet</div>';
+        if(targetId === 'lb-list-home') document.getElementById('high-score-ui').innerText = lb[0]?.score || 0;
+    }
+
+    function endGame(msg) {
         isGameOver = true;
         document.getElementById('end-msg').innerText = msg;
         document.getElementById('game-over-panel').style.display = 'flex';
-        let lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
-        if(lb.length < 5 || gameStats.score > lb[lb.length-1].score) {
-            document.getElementById('new-high-score-ui').style.display = 'block';
-        }
-        renderLeaderboard();
-    }
-
-    function renderLeaderboard() {
-        let lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
-        document.getElementById('leaderboard-list').innerHTML = lb.map((e, i) => `
-            <div class="leader-row"><span>#${i+1} ${e.name}</span><span>${e.score}</span></div>
-        `).join('') || '<div style="opacity:0.5;text-align:center;">No High Scores</div>';
+        const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
+        if(lb.length < 5 || gameStats.score > lb[lb.length-1].score) document.getElementById('new-high-score-ui').style.display = 'block';
+        renderLeaderboard('lb-list-end');
     }
 
     function saveAndRestart() {
-        const input = document.getElementById('name-input');
         if(document.getElementById('new-high-score-ui').style.display === 'block') {
             let lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
-            lb.push({ name: (input.value || 'AAA').toUpperCase(), score: gameStats.score });
+            lb.push({ name: (document.getElementById('name-input').value || 'AAA').toUpperCase(), score: gameStats.score });
             lb.sort((a,b) => b.score - a.score);
             localStorage.setItem('gm_leaderboard', JSON.stringify(lb.slice(0, 5)));
         }
@@ -268,57 +255,47 @@
 
     Events.on(render, 'afterRender', () => {
         const ctx = render.context;
-        // Particles
         particles.forEach((p, i) => {
-            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-            ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
-            if (p.life <= 0) particles.splice(i, 1);
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02; ctx.globalAlpha = p.life; ctx.fillStyle = p.col;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+            if(p.life <= 0) particles.splice(i, 1);
         });
         ctx.globalAlpha = 1;
-
         if (isStarted && !isGameOver) {
-            const spawnY = isGravityFlipped ? height - 90 : 90;
-            // Laser
+            const sy = isGravityFlipped ? height - 90 : 90;
             ctx.setLineDash([5, 15]); ctx.strokeStyle = "rgba(255,255,255,0.1)";
-            ctx.beginPath(); ctx.moveTo(currentX, spawnY);
-            ctx.lineTo(currentX, isGravityFlipped ? 0 : height); ctx.stroke();
-            
-            // Preview Ball & Glow
-            ctx.globalAlpha = 0.4;
-            ctx.fillStyle = BALL_TYPES[nextLevel].col;
-            ctx.beginPath(); ctx.arc(currentX, spawnY, BALL_TYPES[nextLevel].r, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(currentX, sy); ctx.lineTo(currentX, isGravityFlipped ? 0 : height); ctx.stroke();
+            ctx.globalAlpha = 0.25; ctx.fillStyle = BALL_TYPES[nextLevel].col;
+            ctx.beginPath(); ctx.arc(currentX, sy, BALL_TYPES[nextLevel].r, 0, Math.PI*2); ctx.fill();
             ctx.globalAlpha = 1.0;
         }
-
-        // PRESTIGE BALL LOOK
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin.level === undefined) return;
             const r = b.circleRadius;
-            // Shine
-            ctx.beginPath(); ctx.arc(b.position.x - r*0.3, b.position.y - r*0.3, r*0.2, 0, Math.PI*2);
-            ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fill();
-            // Inner Shadow
+            // Gloss
+            ctx.beginPath(); ctx.arc(b.position.x - r*0.35, b.position.y - r*0.35, r*0.2, 0, Math.PI*2);
+            ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fill();
+            // Shadow
             ctx.beginPath(); ctx.arc(b.position.x, b.position.y, r, 0, Math.PI*2);
-            const grad = ctx.createRadialGradient(b.position.x, b.position.y, r*0.8, b.position.x, b.position.y, r);
-            grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+            const grad = ctx.createRadialGradient(b.position.x, b.position.y, r*0.75, b.position.x, b.position.y, r);
+            grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.45)');
             ctx.fillStyle = grad; ctx.fill();
         });
     });
 
-    window.addEventListener('pointermove', (e) => { currentX = Math.max(30, Math.min(width - 30, e.clientX)); });
+    function triggerFlash() { if(settings.shake) { const f = document.getElementById('flash'); f.style.opacity = '0.25'; setTimeout(() => f.style.opacity = '0', 100); } }
+    window.addEventListener('pointermove', (e) => { currentX = Math.max(35, Math.min(width - 35, e.clientX)); });
     window.addEventListener('pointerup', (e) => {
         if (!isStarted || isGameOver || e.target.closest('.menu-btn') || e.target.closest('.glass-panel')) return;
         spawn(currentX, isGravityFlipped ? height - 90 : 90, nextLevel);
         nextLevel = Math.floor(Math.random() * 3);
     });
 
+    renderLeaderboard('lb-list-home');
     const wallOpts = { isStatic: true, render: { visible: false } };
     Composite.add(engine.world, [
-        Bodies.rectangle(width/2, height+25, width, 50, wallOpts),
-        Bodies.rectangle(width/2, -25, width, 50, wallOpts),
-        Bodies.rectangle(-25, height/2, 50, height, wallOpts),
-        Bodies.rectangle(width+25, height/2, 50, height, wallOpts)
+        Bodies.rectangle(width/2, height+25, width, 50, wallOpts), Bodies.rectangle(width/2, -25, width, 50, wallOpts),
+        Bodies.rectangle(-25, height/2, 50, height, wallOpts), Bodies.rectangle(width+25, height/2, 50, height, wallOpts)
     ]);
 </script>
 </body>
