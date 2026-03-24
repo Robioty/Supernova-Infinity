@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gravity Merge Arcade</title>
+    <title>Gravity Merge Definitive</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         html, body { 
@@ -31,8 +31,9 @@
         .leaderboard-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin: 15px 0; font-family: monospace; }
         .lb-entry { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
 
-        .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: bounceUp 1s ease-out forwards; text-align: center; }
-        @keyframes bounceUp { 0% { transform: scale(0.5); opacity: 0; } 20% { transform: scale(1.3); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
+        /* SLOWER POPUP ANIMATION */
+        .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: bounceUp 1.6s cubic-bezier(0.1, 0.5, 0.1, 1) forwards; text-align: center; }
+        @keyframes bounceUp { 0% { transform: scale(0.5); opacity: 0; } 15% { transform: scale(1.2); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
 
         #gravity-cooldown { position: fixed; right: 40px; bottom: 175px; width: 6px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; display: none; }
         #gravity-bar { width: 100%; height: 100%; background: #38bdf8; transform-origin: bottom; }
@@ -50,7 +51,7 @@
     </div>
 
     <div id="overlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.95); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <h1 style="font-size: 3.5em; margin:0;">GRAVITY <span style="color:#38bdf8">MERGE</span></h1>
+        <h1 style="font-size: 3.5em; margin:0; text-align: center; line-height: 0.9;">GRAVITY<br><span style="color:#38bdf8">MERGE</span></h1>
         <div class="leaderboard-box" style="width:240px" id="lb-start"></div>
         <button class="btn" onclick="initGame()" style="width:200px; padding:20px;">START GAME</button>
     </div>
@@ -93,16 +94,44 @@
     ];
 
     function renderLeaderboard() {
-        const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
-        const html = lb.length ? lb.map((entry, i) => `<div class="lb-entry"><span>#${i+1} PLAYER</span><span>${Number(entry).toLocaleString()}</span></div>`).join('') : '<div style="text-align:center; opacity:0.5">No scores yet</div>';
-        ['lb-start', 'lb-pause', 'lb-end'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = html; });
-        document.getElementById('top-score-ui').innerText = (lb[0] || 0).toLocaleString();
+        const raw = localStorage.getItem('gm_leaderboard');
+        let lb = [];
+        try { lb = JSON.parse(raw) || []; } catch(e) { lb = []; }
+        
+        // Sanitize: filter out any weird objects if they exist
+        lb = lb.map(item => typeof item === 'object' ? item.score || 0 : item).filter(n => !isNaN(n));
+
+        const html = lb.length ? lb.map((entry, i) => `
+            <div class="lb-entry"><span>#${i+1} PLAYER</span><span>${Math.floor(entry).toLocaleString()}</span></div>
+        `).join('') : '<div style="text-align:center; opacity:0.5">No scores yet</div>';
+        
+        ['lb-start', 'lb-pause', 'lb-end'].forEach(id => { 
+            const el = document.getElementById(id);
+            if(el) el.innerHTML = `<div style="font-size:0.7em; opacity:0.5; margin-bottom:5px; letter-spacing:1px">HALL OF FAME</div>` + html; 
+        });
+
+        // FIXED: Explicitly grab only the first number for the UI label
+        const bestValue = lb.length > 0 ? lb[0] : 0;
+        document.getElementById('top-score-ui').innerText = Math.floor(bestValue).toLocaleString();
+    }
+
+    function saveScore(newScore) {
+        let lb = [];
+        try { lb = JSON.parse(localStorage.getItem('gm_leaderboard')) || []; } catch(e) { lb = []; }
+        lb = lb.map(item => typeof item === 'object' ? item.score || 0 : item);
+        
+        if (newScore > (lb[0] || 0)) document.getElementById('new-record-tag').style.display = 'block';
+        
+        lb.push(newScore);
+        lb.sort((a, b) => b - a);
+        localStorage.setItem('gm_leaderboard', JSON.stringify(lb.slice(0, 5)));
+        renderLeaderboard();
     }
 
     function triggerFlash() {
         const f = document.getElementById('flash-overlay');
         f.classList.remove('flash-anim');
-        void f.offsetWidth; // trigger reflow
+        void f.offsetWidth;
         f.classList.add('flash-anim');
     }
 
@@ -127,7 +156,10 @@
 
     function spawn(x, y, lvl, isMerge = false) {
         const t = BALL_TYPES[lvl];
-        const b = Bodies.circle(x, y, t.r, { restitution: 0.3, friction: 0.1, frictionAir: 0.02, render: { fillStyle: t.col }, plugin: { level: lvl } });
+        const b = Bodies.circle(x, y, t.r, { 
+            restitution: 0.3, friction: 0.1, frictionAir: 0.02, 
+            render: { fillStyle: t.col }, plugin: { level: lvl } 
+        });
         if (isMerge) Body.setVelocity(b, { x: 0, y: 0 });
         Composite.add(engine.world, b);
     }
@@ -141,6 +173,7 @@
                 const now = Date.now();
                 comboCount = (now - lastMergeTime < 1000) ? comboCount + 1 : 1;
                 lastMergeTime = now;
+
                 let pts = BALL_TYPES[currentLvl].score * comboCount;
                 let label = `+${pts}`;
                 const mx = (a.position.x + b.position.x) / 2, my = (a.position.y + b.position.y) / 2;
@@ -163,7 +196,7 @@
                 txt.style.color = BALL_TYPES[currentLvl].col;
                 txt.innerHTML = `${label}${comboCount > 1 && nextLvl < BALL_TYPES.length ? '<br><small>x'+comboCount+'</small>' : ''}`;
                 document.body.appendChild(txt);
-                setTimeout(() => txt.remove(), 1000);
+                setTimeout(() => txt.remove(), 1600); // Wait for slower animation
             }
         });
     });
@@ -206,12 +239,9 @@
                 if (!b.warn) b.warn = Date.now();
                 if (Date.now() - b.warn > 3500) {
                     isGameOver = true;
-                    const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
-                    if (score > (lb[0] || 0)) document.getElementById('new-record-tag').style.display = 'block';
-                    lb.push(score); lb.sort((a,b)=>b-a); localStorage.setItem('gm_leaderboard', JSON.stringify(lb.slice(0,5)));
+                    saveScore(score);
                     document.getElementById('game-over-panel').style.display = 'flex';
                     document.getElementById('final-score-val').innerText = score.toLocaleString();
-                    renderLeaderboard();
                 }
             } else { b.warn = null; }
         });
