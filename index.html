@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gravity Merge Final</title>
+    <title>Gravity Merge Arcade</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         html, body { 
@@ -11,9 +11,11 @@
             background: #0f172a; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
             font-family: 'Segoe UI', sans-serif; touch-action: none; color: white; 
         }
-        
-        /* FIX: Remove the faint blue box when tapping buttons */
         * { -webkit-tap-highlight-color: transparent; outline: none; }
+
+        #flash-overlay { position: fixed; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 300; }
+        .flash-anim { animation: flashEffect 0.4s ease-out; }
+        @keyframes flashEffect { 0% { opacity: 0.8; } 100% { opacity: 0; } }
 
         #ui { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 10; display: flex; justify-content: space-between; pointer-events: none; }
         .menu-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px; border-radius: 12px; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
@@ -29,14 +31,15 @@
         .leaderboard-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin: 15px 0; font-family: monospace; }
         .lb-entry { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
 
-        .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: bounceUp 1s ease-out forwards; }
-        @keyframes bounceUp { 0% { transform: scale(0.5); opacity: 0; } 20% { transform: scale(1.3); opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+        .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: bounceUp 1s ease-out forwards; text-align: center; }
+        @keyframes bounceUp { 0% { transform: scale(0.5); opacity: 0; } 20% { transform: scale(1.3); opacity: 1; } 100% { transform: translateY(-80px); opacity: 0; } }
 
         #gravity-cooldown { position: fixed; right: 40px; bottom: 175px; width: 6px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; display: none; }
-        #gravity-bar { width: 100%; height: 100%; background: #38bdf8; transform-origin: bottom; transition: transform 0.1s linear; }
+        #gravity-bar { width: 100%; height: 100%; background: #38bdf8; transform-origin: bottom; }
     </style>
 </head>
 <body>
+    <div id="flash-overlay"></div>
     <div id="ui">
         <button class="menu-btn" onclick="toggleSettings()">⚙️</button>
         <div style="text-align: center;">
@@ -73,8 +76,6 @@
 <script>
     const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
     const engine = Engine.create();
-    
-    // Smooth Physics Settings
     engine.positionIterations = 10;
     engine.velocityIterations = 10;
 
@@ -92,31 +93,17 @@
     ];
 
     function renderLeaderboard() {
-        const lbData = localStorage.getItem('gm_leaderboard');
-        const lb = lbData ? JSON.parse(lbData) : [];
-        
-        const html = lb.length ? lb.map((entry, i) => `
-            <div class="lb-entry"><span>#${i+1} PLAYER</span><span>${Number(entry).toLocaleString()}</span></div>
-        `).join('') : '<div style="text-align:center; opacity:0.5">No scores yet</div>';
-        
-        ['lb-start', 'lb-pause', 'lb-end'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.innerHTML = `<div style="font-size:0.7em; opacity:0.5; margin-bottom:5px; letter-spacing:1px">HALL OF FAME</div>` + html;
-        });
-
-        // FIX: Ensure UI shows only the single top number, not the object
-        const bestScore = lb.length > 0 ? lb[0] : 0;
-        document.getElementById('top-score-ui').innerText = Number(bestScore).toLocaleString();
+        const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
+        const html = lb.length ? lb.map((entry, i) => `<div class="lb-entry"><span>#${i+1} PLAYER</span><span>${Number(entry).toLocaleString()}</span></div>`).join('') : '<div style="text-align:center; opacity:0.5">No scores yet</div>';
+        ['lb-start', 'lb-pause', 'lb-end'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = html; });
+        document.getElementById('top-score-ui').innerText = (lb[0] || 0).toLocaleString();
     }
 
-    function saveScore(newScore) {
-        let lbData = localStorage.getItem('gm_leaderboard');
-        let lb = lbData ? JSON.parse(lbData) : [];
-        if (newScore > (lb[0] || 0)) document.getElementById('new-record-tag').style.display = 'block';
-        lb.push(newScore);
-        lb.sort((a, b) => b - a);
-        localStorage.setItem('gm_leaderboard', JSON.stringify(lb.slice(0, 5)));
-        renderLeaderboard();
+    function triggerFlash() {
+        const f = document.getElementById('flash-overlay');
+        f.classList.remove('flash-anim');
+        void f.offsetWidth; // trigger reflow
+        f.classList.add('flash-anim');
     }
 
     function toggleSettings() {
@@ -134,19 +121,13 @@
         engine.gravity.y *= -1;
         gravityCharge = 0;
         Composite.allBodies(engine.world).forEach(b => {
-            if(!b.isStatic) Body.applyForce(b, b.position, { x: (Math.random()-0.5)*0.01, y: isFlipped ? 0.02 : -0.02 });
+            if(!b.isStatic) Body.applyForce(b, b.position, { x: (Math.random()-0.5)*0.01, y: isFlipped ? 0.025 : -0.025 });
         });
     }
 
     function spawn(x, y, lvl, isMerge = false) {
         const t = BALL_TYPES[lvl];
-        const b = Bodies.circle(x, y, t.r, { 
-            restitution: 0.3, 
-            friction: 0.1,
-            frictionAir: 0.02, 
-            render: { fillStyle: t.col }, 
-            plugin: { level: lvl } 
-        });
+        const b = Bodies.circle(x, y, t.r, { restitution: 0.3, friction: 0.1, frictionAir: 0.02, render: { fillStyle: t.col }, plugin: { level: lvl } });
         if (isMerge) Body.setVelocity(b, { x: 0, y: 0 });
         Composite.add(engine.world, b);
     }
@@ -155,26 +136,32 @@
         e.pairs.forEach(p => {
             const a = p.bodyA, b = p.bodyB;
             if (a.plugin?.level === b.plugin?.level && a.plugin?.level !== undefined) {
-                const lvl = a.plugin.level + 1;
-                if (lvl >= BALL_TYPES.length) return;
-
+                const currentLvl = a.plugin.level;
+                const nextLvl = currentLvl + 1;
                 const now = Date.now();
                 comboCount = (now - lastMergeTime < 1000) ? comboCount + 1 : 1;
                 lastMergeTime = now;
-
-                const pts = BALL_TYPES[a.plugin.level].score * comboCount;
-                score += pts;
-                document.getElementById('score-label').innerText = score.toLocaleString();
-
+                let pts = BALL_TYPES[currentLvl].score * comboCount;
+                let label = `+${pts}`;
                 const mx = (a.position.x + b.position.x) / 2, my = (a.position.y + b.position.y) / 2;
                 Composite.remove(engine.world, [a, b]);
-                spawn(mx, my, lvl, true);
 
+                if (nextLvl >= BALL_TYPES.length) {
+                    pts += 1000;
+                    score += pts;
+                    label = "MAX MERGE!<br>+1000";
+                    triggerFlash();
+                } else {
+                    score += pts;
+                    spawn(mx, my, nextLvl, true);
+                }
+
+                document.getElementById('score-label').innerText = score.toLocaleString();
                 const txt = document.createElement('div');
                 txt.className = 'floating-text';
                 txt.style.left = mx + 'px'; txt.style.top = my + 'px';
-                txt.style.color = BALL_TYPES[lvl].col;
-                txt.innerHTML = `+${pts}${comboCount > 1 ? '<br><small>x'+comboCount+'</small>' : ''}`;
+                txt.style.color = BALL_TYPES[currentLvl].col;
+                txt.innerHTML = `${label}${comboCount > 1 && nextLvl < BALL_TYPES.length ? '<br><small>x'+comboCount+'</small>' : ''}`;
                 document.body.appendChild(txt);
                 setTimeout(() => txt.remove(), 1000);
             }
@@ -192,16 +179,13 @@
 
     Events.on(render, 'afterRender', () => {
         if (isPaused || isGameOver) return;
-        
         if (gravityCharge < 100) {
             gravityCharge += 0.45;
             document.getElementById('gravity-bar').style.transform = `scaleY(${gravityCharge/100})`;
         }
-
         const ctx = render.context;
         const sy = isFlipped ? height - 90 : 90;
         const ready = Math.min(1, (Date.now() - lastDrop) / 800);
-
         ctx.globalAlpha = ready < 1 ? 0.2 : 0.5;
         ctx.fillStyle = BALL_TYPES[nextLevel].col;
         ctx.beginPath(); ctx.arc(currentX, sy, BALL_TYPES[nextLevel].r, 0, Math.PI*2); ctx.fill();
@@ -214,20 +198,20 @@
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin.level === undefined) return;
             const r = b.circleRadius;
-            
             const grad = ctx.createRadialGradient(b.position.x - r*0.3, b.position.y - r*0.3, r*0.1, b.position.x, b.position.y, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.3)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.2)');
-            ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(b.position.x, b.position.y, r, 0, Math.PI*2); ctx.fill();
+            grad.addColorStop(0, 'rgba(255,255,255,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0.2)');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(b.position.x, b.position.y, r, 0, Math.PI*2); ctx.fill();
 
             if ((!isFlipped && b.position.y < limit) || (isFlipped && b.position.y > limit)) {
                 if (!b.warn) b.warn = Date.now();
                 if (Date.now() - b.warn > 3500) {
                     isGameOver = true;
-                    saveScore(score);
+                    const lb = JSON.parse(localStorage.getItem('gm_leaderboard') || '[]');
+                    if (score > (lb[0] || 0)) document.getElementById('new-record-tag').style.display = 'block';
+                    lb.push(score); lb.sort((a,b)=>b-a); localStorage.setItem('gm_leaderboard', JSON.stringify(lb.slice(0,5)));
                     document.getElementById('game-over-panel').style.display = 'flex';
                     document.getElementById('final-score-val').innerText = score.toLocaleString();
+                    renderLeaderboard();
                 }
             } else { b.warn = null; }
         });
