@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gravity Merge Definitive</title>
+    <title>Gravity Merge Expansion</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
+        :root { --accent: #38bdf8; }
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; 
-            background: #0f172a; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); 
-            font-family: 'Segoe UI', sans-serif; touch-action: none; color: white; 
+            background: #0f172a; font-family: 'Segoe UI', sans-serif; touch-action: none; color: white; 
         }
         * { -webkit-tap-highlight-color: transparent; outline: none; }
 
@@ -22,21 +22,27 @@
         
         .glass-panel { 
             position: absolute; background: rgba(15, 23, 42, 0.98); border: 1px solid rgba(56, 189, 248, 0.3); 
-            border-radius: 20px; padding: 25px; display: none; flex-direction: column; align-items: center;
+            border-radius: 20px; padding: 20px; display: none; flex-direction: column; align-items: center;
             z-index: 100; backdrop-filter: blur(20px); left: 50%; top: 50%; transform: translate(-50%, -50%);
-            width: 300px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            width: 320px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); max-height: 80vh; overflow-y: auto;
         }
-        .btn { background: #38bdf8; color: white; border: none; padding: 14px; border-radius: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; pointer-events: auto; }
-        
-        .leaderboard-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin: 15px 0; font-family: monospace; }
-        .lb-entry { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9em; }
+        .btn { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; pointer-events: auto; }
+        .secondary-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
 
-        /* SLOWER POPUP ANIMATION */
-        .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: bounceUp 1.6s cubic-bezier(0.1, 0.5, 0.1, 1) forwards; text-align: center; }
+        .theme-card { display: flex; gap: 10px; width: 100%; margin-top: 10px; }
+        .theme-opt { flex: 1; padding: 10px; border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; text-align: center; cursor: pointer; pointer-events: auto; }
+        .theme-opt.active { border-color: var(--accent); background: rgba(56, 189, 248, 0.2); }
+
+        .leaderboard-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 0.85em; }
+        .lb-entry { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .floating-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: bounceUp 1.6s forwards; text-align: center; }
         @keyframes bounceUp { 0% { transform: scale(0.5); opacity: 0; } 15% { transform: scale(1.2); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
 
-        #gravity-cooldown { position: fixed; right: 40px; bottom: 175px; width: 6px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; display: none; }
-        #gravity-bar { width: 100%; height: 100%; background: #38bdf8; transform-origin: bottom; }
+        #gravity-cooldown { position: fixed; right: 20px; bottom: 100px; width: 6px; height: 65px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; display: none; }
+        #gravity-bar { width: 100%; height: 100%; background: var(--accent); transform-origin: bottom; }
+        
+        .guide-text { font-size: 0.8em; line-height: 1.4; opacity: 0.8; margin: 10px 0; }
     </style>
 </head>
 <body>
@@ -44,16 +50,33 @@
     <div id="ui">
         <button class="menu-btn" onclick="toggleSettings()">⚙️</button>
         <div style="text-align: center;">
-            <div id="score-label" style="font-size: 2.8em; font-weight: 900;">0</div>
-            <div style="font-size: 0.8em; opacity: 0.6;">BEST: <span id="top-score-ui">0</span></div>
+            <div id="score-label" style="font-size: 2.5em; font-weight: 900;">0</div>
+            <div style="font-size: 0.7em; opacity: 0.6; letter-spacing: 1px;">BEST: <span id="top-score-ui">0</span></div>
         </div>
         <div style="width:45px"></div>
     </div>
 
-    <div id="overlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.95); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <h1 style="font-size: 3.5em; margin:0; text-align: center; line-height: 0.9;">GRAVITY<br><span style="color:#38bdf8">MERGE</span></h1>
-        <div class="leaderboard-box" style="width:240px" id="lb-start"></div>
-        <button class="btn" onclick="initGame()" style="width:200px; padding:20px;">START GAME</button>
+    <div id="overlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.98); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px;">
+        <h1 style="font-size: 3em; margin:0; text-align: center;">GRAVITY<br><span style="color:var(--accent)">MERGE</span></h1>
+        
+        <div class="theme-card">
+            <div class="theme-opt active" id="theme-classic" onclick="setTheme('classic')">⚪<br><small>Classic</small></div>
+            <div class="theme-opt" id="theme-cosmos" onclick="setTheme('cosmos')">🪐<br><small>Cosmos</small></div>
+            <div class="theme-opt" id="theme-run" onclick="setTheme('run')">🎢<br><small>Marble Run</small></div>
+        </div>
+
+        <div class="leaderboard-box" id="lb-start"></div>
+        
+        <button class="btn" onclick="initGame()" style="padding:18px;">START GAME</button>
+        <button class="btn secondary-btn" onclick="toggleGuide()">HOW TO PLAY & PATCH NOTES</button>
+    </div>
+
+    <div id="guide-panel" class="glass-panel">
+        <h3>GUIDE & PATCHES</h3>
+        <p class="guide-text"><b>Planets:</b> Merge max-level planets to create a <b>Black Hole</b> that pushes nearby objects away for 30s.<br><br><b>Marble Run:</b> Small marbles (blue/pink) that hit the side lanes are transported to the bottom!</p>
+        <hr style="width:100%; opacity:0.1">
+        <p class="guide-text"><b>v2.0 Patch Notes:</b><br>• Added 3 Themes<br>• Fixed 'Object Object' Bug<br>• Slowed score popups for readability<br>• Improved collision sub-stepping</p>
+        <button class="btn" onclick="toggleGuide()">BACK</button>
     </div>
 
     <div id="settings-panel" class="glass-panel">
@@ -72,10 +95,10 @@
     </div>
 
     <div id="gravity-cooldown"><div id="gravity-bar"></div></div>
-    <button id="g-btn" class="menu-btn" style="position:fixed; right:20px; bottom:100px; width:65px; height:65px; border-radius:50%; border:3px solid #38bdf8; display:none; font-weight:900;" onclick="flipGravity()">G</button>
+    <button id="g-btn" class="menu-btn" style="position:fixed; right:40px; bottom:100px; width:65px; height:65px; border-radius:50%; border:3px solid var(--accent); display:none; font-weight:900;" onclick="flipGravity()">G</button>
 
 <script>
-    const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
+    const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
     const engine = Engine.create();
     engine.positionIterations = 10;
     engine.velocityIterations = 10;
@@ -85,80 +108,45 @@
 
     let score = 0, nextLevel = 0, currentX = width/2, isGameOver = false, isPaused = false, isFlipped = false;
     let gravityCharge = 100, lastDrop = 0, comboCount = 0, lastMergeTime = 0;
-    
-    const BALL_TYPES = [
-        { r: 18, col: '#22d3ee', score: 2 }, { r: 28, col: '#f43f5e', score: 5 },
-        { r: 40, col: '#a3e635', score: 10 }, { r: 55, col: '#94a3b8', score: 20 },
-        { r: 72, col: '#8b5cf6', score: 40 }, { r: 95, col: '#fbbf24', score: 80 },
-        { r: 120, col: '#ef4444', score: 150 }
-    ];
+    let selectedTheme = 'classic';
+    let blackHoles = [];
+
+    const THEMES = {
+        classic: {
+            balls: ['#22d3ee', '#f43f5e', '#a3e635', '#94a3b8', '#8b5cf6', '#fbbf24', '#ef4444'],
+            bg: 'radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)'
+        },
+        cosmos: {
+            balls: ['#67e8f9', '#fda4af', '#f0abfc', '#a5b4fc', '#fb7185', '#fbbf24', '#000000'],
+            bg: 'radial-gradient(circle at center, #020617 0%, #000000 100%)'
+        },
+        run: {
+            balls: ['#38bdf8', '#f472b6', '#4ade80', '#fb7185', '#818cf8', '#facc15', '#f87171'],
+            bg: 'radial-gradient(circle at center, #0f172a 0%, #020617 100%)'
+        }
+    };
+
+    function setTheme(t) {
+        selectedTheme = t;
+        document.querySelectorAll('.theme-opt').forEach(el => el.classList.remove('active'));
+        document.getElementById('theme-' + t).classList.add('active');
+        document.body.style.background = THEMES[t].bg;
+    }
 
     function renderLeaderboard() {
-        const raw = localStorage.getItem('gm_leaderboard');
-        let lb = [];
-        try { lb = JSON.parse(raw) || []; } catch(e) { lb = []; }
-        
-        // Sanitize: filter out any weird objects if they exist
-        lb = lb.map(item => typeof item === 'object' ? item.score || 0 : item).filter(n => !isNaN(n));
-
-        const html = lb.length ? lb.map((entry, i) => `
-            <div class="lb-entry"><span>#${i+1} PLAYER</span><span>${Math.floor(entry).toLocaleString()}</span></div>
-        `).join('') : '<div style="text-align:center; opacity:0.5">No scores yet</div>';
-        
-        ['lb-start', 'lb-pause', 'lb-end'].forEach(id => { 
-            const el = document.getElementById(id);
-            if(el) el.innerHTML = `<div style="font-size:0.7em; opacity:0.5; margin-bottom:5px; letter-spacing:1px">HALL OF FAME</div>` + html; 
-        });
-
-        // FIXED: Explicitly grab only the first number for the UI label
-        const bestValue = lb.length > 0 ? lb[0] : 0;
-        document.getElementById('top-score-ui').innerText = Math.floor(bestValue).toLocaleString();
-    }
-
-    function saveScore(newScore) {
-        let lb = [];
-        try { lb = JSON.parse(localStorage.getItem('gm_leaderboard')) || []; } catch(e) { lb = []; }
-        lb = lb.map(item => typeof item === 'object' ? item.score || 0 : item);
-        
-        if (newScore > (lb[0] || 0)) document.getElementById('new-record-tag').style.display = 'block';
-        
-        lb.push(newScore);
-        lb.sort((a, b) => b - a);
-        localStorage.setItem('gm_leaderboard', JSON.stringify(lb.slice(0, 5)));
-        renderLeaderboard();
-    }
-
-    function triggerFlash() {
-        const f = document.getElementById('flash-overlay');
-        f.classList.remove('flash-anim');
-        void f.offsetWidth;
-        f.classList.add('flash-anim');
-    }
-
-    function toggleSettings() {
-        if (isGameOver) return;
-        const p = document.getElementById('settings-panel');
-        isPaused = (p.style.display !== 'flex');
-        p.style.display = isPaused ? 'flex' : 'none';
-        engine.timing.timeScale = isPaused ? 0 : 1;
-        if(isPaused) renderLeaderboard();
-    }
-
-    function flipGravity() {
-        if (isPaused || isGameOver || gravityCharge < 100) return;
-        isFlipped = !isFlipped;
-        engine.gravity.y *= -1;
-        gravityCharge = 0;
-        Composite.allBodies(engine.world).forEach(b => {
-            if(!b.isStatic) Body.applyForce(b, b.position, { x: (Math.random()-0.5)*0.01, y: isFlipped ? 0.025 : -0.025 });
-        });
+        let lb = JSON.parse(localStorage.getItem('gm_leaderboard_v2') || '[]');
+        lb = lb.map(n => typeof n === 'number' ? n : 0).sort((a,b)=>b-a);
+        const html = lb.length ? lb.map((entry, i) => `<div class="lb-entry"><span>#${i+1} PLAYER</span><span>${Math.floor(entry).toLocaleString()}</span></div>`).join('') : '<div style="text-align:center; opacity:0.5">No scores yet</div>';
+        ['lb-start', 'lb-pause', 'lb-end'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = html; });
+        document.getElementById('top-score-ui').innerText = (lb[0] || 0).toLocaleString();
     }
 
     function spawn(x, y, lvl, isMerge = false) {
-        const t = BALL_TYPES[lvl];
-        const b = Bodies.circle(x, y, t.r, { 
+        const r = [18, 28, 40, 55, 72, 95, 120][lvl];
+        const b = Bodies.circle(x, y, r, { 
             restitution: 0.3, friction: 0.1, frictionAir: 0.02, 
-            render: { fillStyle: t.col }, plugin: { level: lvl } 
+            render: { fillStyle: THEMES[selectedTheme].balls[lvl] }, 
+            plugin: { level: lvl } 
         });
         if (isMerge) Body.setVelocity(b, { x: 0, y: 0 });
         Composite.add(engine.world, b);
@@ -168,35 +156,21 @@
         e.pairs.forEach(p => {
             const a = p.bodyA, b = p.bodyB;
             if (a.plugin?.level === b.plugin?.level && a.plugin?.level !== undefined) {
-                const currentLvl = a.plugin.level;
-                const nextLvl = currentLvl + 1;
-                const now = Date.now();
-                comboCount = (now - lastMergeTime < 1000) ? comboCount + 1 : 1;
-                lastMergeTime = now;
-
-                let pts = BALL_TYPES[currentLvl].score * comboCount;
-                let label = `+${pts}`;
+                const lvl = a.plugin.level;
                 const mx = (a.position.x + b.position.x) / 2, my = (a.position.y + b.position.y) / 2;
                 Composite.remove(engine.world, [a, b]);
 
-                if (nextLvl >= BALL_TYPES.length) {
-                    pts += 1000;
-                    score += pts;
-                    label = "MAX MERGE!<br>+1000";
+                if (lvl === 6) { // Max level merge
+                    if (selectedTheme === 'cosmos') {
+                        blackHoles.push({ x: mx, y: my, r: 100, life: 1.0 });
+                    }
+                    score += 1000;
                     triggerFlash();
                 } else {
-                    score += pts;
-                    spawn(mx, my, nextLvl, true);
+                    score += [2,5,10,20,40,80][lvl] * (++comboCount);
+                    spawn(mx, my, lvl + 1, true);
                 }
-
                 document.getElementById('score-label').innerText = score.toLocaleString();
-                const txt = document.createElement('div');
-                txt.className = 'floating-text';
-                txt.style.left = mx + 'px'; txt.style.top = my + 'px';
-                txt.style.color = BALL_TYPES[currentLvl].col;
-                txt.innerHTML = `${label}${comboCount > 1 && nextLvl < BALL_TYPES.length ? '<br><small>x'+comboCount+'</small>' : ''}`;
-                document.body.appendChild(txt);
-                setTimeout(() => txt.remove(), 1600); // Wait for slower animation
             }
         });
     });
@@ -212,39 +186,52 @@
 
     Events.on(render, 'afterRender', () => {
         if (isPaused || isGameOver) return;
+        const ctx = render.context;
+
+        // Black Hole Logic (Cosmos Theme)
+        blackHoles = blackHoles.filter(bh => {
+            bh.life -= 0.0005; // ~33 seconds
+            bh.r *= 0.9995;
+            
+            ctx.beginPath();
+            const g = ctx.createRadialGradient(bh.x, bh.y, 0, bh.x, bh.y, bh.r);
+            g.addColorStop(0, '#000'); g.addColorStop(1, 'transparent');
+            ctx.fillStyle = g; ctx.arc(bh.x, bh.y, bh.r, 0, Math.PI*2); ctx.fill();
+
+            Composite.allBodies(engine.world).forEach(b => {
+                if(b.isStatic) return;
+                const dist = Vector.magnitude(Vector.sub(b.position, bh));
+                if(dist < bh.r * 1.5) {
+                    const force = Vector.mult(Vector.normalise(Vector.sub(b.position, bh)), 0.005 * (1 - dist/(bh.r*1.5)));
+                    Body.applyForce(b, b.position, force);
+                }
+            });
+            return bh.life > 0;
+        });
+
+        // Marble Run UI (Run Theme)
+        if (selectedTheme === 'run') {
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)'; ctx.lineWidth = 10;
+            ctx.beginPath(); ctx.moveTo(20, 150); ctx.lineTo(20, height-50); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(width-20, 150); ctx.lineTo(width-20, height-50); ctx.stroke();
+            
+            Composite.allBodies(engine.world).forEach(b => {
+                if(b.plugin.level <= 1 && (b.position.x < 30 || b.position.x > width-30) && b.position.y < height-100) {
+                    Body.setPosition(b, { x: width/2, y: height-50 });
+                }
+            });
+        }
+
+        // Standard Gravity Bar & Preview
         if (gravityCharge < 100) {
             gravityCharge += 0.45;
             document.getElementById('gravity-bar').style.transform = `scaleY(${gravityCharge/100})`;
         }
-        const ctx = render.context;
+        
         const sy = isFlipped ? height - 90 : 90;
-        const ready = Math.min(1, (Date.now() - lastDrop) / 800);
-        ctx.globalAlpha = ready < 1 ? 0.2 : 0.5;
-        ctx.fillStyle = BALL_TYPES[nextLevel].col;
-        ctx.beginPath(); ctx.arc(currentX, sy, BALL_TYPES[nextLevel].r, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 0.5; ctx.fillStyle = THEMES[selectedTheme].balls[nextLevel];
+        ctx.beginPath(); ctx.arc(currentX, sy, [18, 28, 40][nextLevel], 0, Math.PI*2); ctx.fill();
         ctx.globalAlpha = 1;
-
-        const limit = isFlipped ? height - 150 : 150;
-        ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(255,255,255,0.2)";
-        ctx.beginPath(); ctx.moveTo(0, limit); ctx.lineTo(width, limit); ctx.stroke();
-
-        Composite.allBodies(engine.world).forEach(b => {
-            if (b.isStatic || b.plugin.level === undefined) return;
-            const r = b.circleRadius;
-            const grad = ctx.createRadialGradient(b.position.x - r*0.3, b.position.y - r*0.3, r*0.1, b.position.x, b.position.y, r);
-            grad.addColorStop(0, 'rgba(255,255,255,0.3)'); grad.addColorStop(1, 'rgba(0,0,0,0.2)');
-            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(b.position.x, b.position.y, r, 0, Math.PI*2); ctx.fill();
-
-            if ((!isFlipped && b.position.y < limit) || (isFlipped && b.position.y > limit)) {
-                if (!b.warn) b.warn = Date.now();
-                if (Date.now() - b.warn > 3500) {
-                    isGameOver = true;
-                    saveScore(score);
-                    document.getElementById('game-over-panel').style.display = 'flex';
-                    document.getElementById('final-score-val').innerText = score.toLocaleString();
-                }
-            } else { b.warn = null; }
-        });
     });
 
     window.addEventListener('pointermove', (e) => currentX = Math.max(40, Math.min(width-40, e.clientX)));
@@ -255,7 +242,28 @@
         lastDrop = Date.now();
     });
 
-    renderLeaderboard();
+    function toggleSettings() {
+        const p = document.getElementById('settings-panel');
+        isPaused = (p.style.display !== 'flex');
+        p.style.display = isPaused ? 'flex' : 'none';
+        engine.timing.timeScale = isPaused ? 0 : 1;
+    }
+    
+    function toggleGuide() {
+        const g = document.getElementById('guide-panel');
+        g.style.display = (g.style.display === 'flex' ? 'none' : 'flex');
+    }
+
+    function flipGravity() {
+        if (isPaused || gravityCharge < 100) return;
+        isFlipped = !isFlipped; engine.gravity.y *= -1; gravityCharge = 0;
+    }
+
+    function triggerFlash() {
+        const f = document.getElementById('flash-overlay');
+        f.classList.remove('flash-anim'); void f.offsetWidth; f.classList.add('flash-anim');
+    }
+
     const wallOpts = { isStatic: true, render: { visible: false } };
     Composite.add(engine.world, [
         Bodies.rectangle(width/2, height+25, width, 50, wallOpts),
@@ -263,6 +271,7 @@
         Bodies.rectangle(-25, height/2, 50, height, wallOpts),
         Bodies.rectangle(width+25, height/2, 50, height, wallOpts)
     ]);
+    renderLeaderboard();
 </script>
 </body>
 </html>
