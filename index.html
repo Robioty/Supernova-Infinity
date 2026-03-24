@@ -9,84 +9,92 @@
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; }
         body { margin: 0; overflow: hidden; background: #070b14; font-family: 'Segoe UI', sans-serif; touch-action: none; color: white; }
         
+        /* Main UI */
         #ui { position: absolute; top: 15px; left: 15px; right: 15px; z-index: 100; display: flex; align-items: center; pointer-events: none; }
-        .menu-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 12px; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
+        .menu-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 12px; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); transition: 0.2s; }
+        .menu-btn:active { transform: scale(0.9); }
         #score-container { flex-grow: 1; text-align: center; }
-        #score-label { font-size: 2.5em; font-weight: 900; }
+        #score-label { font-size: 2.5em; font-weight: 900; text-shadow: 0 0 20px rgba(56,189,248,0.5); }
         
-        /* Next Preview */
-        #next-preview { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
+        /* Next Preview Box */
+        #next-box { width: 60px; height: 60px; background: rgba(255,255,255,0.05); border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+        #next-preview { border-radius: 50%; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
+        /* Overlays */
         .overlay { position: fixed; inset: 0; background: rgba(7,11,20,0.98); z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-        .btn { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: bold; cursor: pointer; width: 220px; font-size: 1.1em; margin-top: 10px; }
+        .btn { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: bold; cursor: pointer; width: 220px; font-size: 1.1em; margin-top: 10px; box-shadow: 0 4px 15px rgba(56,189,248,0.3); }
         
         .theme-selector { display: flex; gap: 10px; margin: 20px 0; pointer-events: auto; }
-        .theme-opt { padding: 10px; border: 2px solid rgba(255,255,255,0.1); border-radius: 15px; cursor: pointer; background: rgba(255,255,255,0.05); width: 65px; font-size: 0.8em; }
+        .theme-opt { padding: 10px; border: 2px solid rgba(255,255,255,0.1); border-radius: 15px; cursor: pointer; background: rgba(255,255,255,0.05); width: 65px; font-size: 0.8em; text-align: center; }
         .theme-opt.active { border-color: var(--accent); background: rgba(56,189,248,0.2); transform: scale(1.1); }
         
-        .pop-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; text-align: center; animation: popUp 0.8s ease-out forwards; }
-        @keyframes popUp { 0% { transform: scale(0.5); opacity: 0; } 20% { opacity: 1; transform: scale(1.1); } 100% { transform: translateY(-50px); opacity: 0; } }
+        /* Gravity Meter */
+        #gravity-cooldown { position: fixed; right: 25px; bottom: 100px; width: 8px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 4px; display: none; overflow: hidden; }
+        #gravity-fill { width: 100%; height: 100%; background: var(--gold); transform-origin: bottom; transition: transform 0.1s linear; }
         
-        #gravity-cooldown { position: fixed; right: 25px; bottom: 100px; width: 6px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 3px; display: none; }
-        #gravity-fill { width: 100%; height: 100%; background: var(--gold); transform-origin: bottom; }
-        #event-banner { position: fixed; top: 120px; width: 100%; text-align: center; color: #f472b6; font-weight: 900; font-size: 1.5em; display: none; z-index: 200; text-shadow: 0 0 10px #f472b6; }
+        #event-banner { position: fixed; top: 120px; width: 100%; text-align: center; color: #f472b6; font-weight: 900; font-size: 1.8em; display: none; z-index: 200; text-shadow: 0 0 15px #f472b6; pointer-events: none; }
+        .pop-text { position: absolute; font-weight: 900; pointer-events: none; z-index: 30; animation: popUp 0.8s ease-out forwards; }
+        @keyframes popUp { 0% { transform: scale(0.5); opacity: 0; } 20% { opacity: 1; transform: scale(1.1); } 100% { transform: translateY(-50px); opacity: 0; } }
     </style>
 </head>
 <body>
     <div id="event-banner">BLACK HOLE DETECTED!</div>
     <div id="ui">
         <button class="menu-btn" onclick="togglePause()">⚙️</button>
-        <div style="margin-left: 10px;"><div id="next-preview"></div></div>
+        <div style="margin-left: 12px;">
+            <div id="next-box"><div id="next-preview"></div></div>
+        </div>
         <div id="score-container">
             <div id="score-label">0</div>
-            <div style="font-size: 0.7em; opacity: 0.6;">BEST: <span id="best-score">0</span></div>
+            <div style="font-size: 0.7em; opacity: 0.6; letter-spacing: 1px;">BEST: <span id="best-score">0</span></div>
         </div>
     </div>
 
     <div id="start-screen" class="overlay">
-        <h1 style="font-size: 2.5em; margin: 0;">GRAVITY <span style="color:var(--accent)">MERGE</span></h1>
+        <h1 style="font-size: 2.8em; margin-bottom: 0;">GRAVITY <span style="color:var(--accent)">MERGE</span></h1>
+        <p style="opacity: 0.6; margin-top: 5px;">Ultimate Supernova Edition</p>
         <div class="theme-selector">
             <div class="theme-opt active" id="opt-classic" onclick="setTheme('classic')">⚪<br>Classic</div>
             <div class="theme-opt" id="opt-cosmos" onclick="setTheme('cosmos')">🪐<br>Planets</div>
             <div class="theme-opt" id="opt-glass" onclick="setTheme('glass')">💎<br>Glass</div>
         </div>
         <button class="btn" onclick="startGame()">START GAME</button>
-        <div class="leaderboard" id="main-leaderboard" style="margin-top:20px; font-size:0.8em; opacity:0.7;"></div>
     </div>
 
     <div id="pause-screen" class="overlay" style="display:none">
-        <h2 style="color:var(--accent)">PAUSED</h2>
+        <h2 style="color:var(--accent); font-size: 2em;">PAUSED</h2>
         <button class="btn" onclick="togglePause()">RESUME</button>
         <button class="btn" style="background:#475569" onclick="location.reload()">RESTART</button>
     </div>
 
     <div id="game-over-screen" class="overlay" style="display:none">
-        <h2 style="color:var(--danger)">GAME OVER</h2>
-        <h1 id="final-score" style="font-size: 3em; margin: 5px 0;">0</h1>
-        <input type="text" id="player-name" placeholder="YOUR NAME" maxlength="10">
-        <button class="btn" onclick="submitScore()">SUBMIT SCORE</button>
-        <button class="btn" style="background:#475569" onclick="location.reload()">RESTART</button>
+        <h2 style="color:var(--danger); font-size: 2em;">GAME OVER</h2>
+        <h1 id="final-score" style="font-size: 4em; margin: 10px 0;">0</h1>
+        <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
     </div>
 
     <div id="gravity-cooldown"><div id="gravity-fill"></div></div>
-    <button id="g-btn" class="menu-btn" style="position:fixed; right:25px; bottom:100px; width:60px; height:60px; border-radius:50%; border:2px solid var(--gold); color:var(--gold); font-weight:bold; display:none;" onclick="flipGravity()">G</button>
+    <button id="g-btn" class="menu-btn" style="position:fixed; right:20px; bottom:110px; width:65px; height:65px; border-radius:50%; border:2px solid var(--gold); color:var(--gold); font-weight:900; display:none;" onclick="flipGravity()">G</button>
 
 <script>
     const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
     const engine = Engine.create();
     const width = window.innerWidth, height = window.innerHeight;
-    const render = Render.create({ element: document.body, engine, options: { width, height, wireframes: false, background: 'transparent' } });
+    const render = Render.create({ 
+        element: document.body, 
+        engine, 
+        options: { width, height, wireframes: false, background: 'transparent' } 
+    });
 
-    let score = 0, nextLevel = 0, currentLevel = 0, isGameOver = false, isPaused = false, isFlipped = false;
-    let currentX = width/2, gravityCharge = 100, lastDrop = 0, combo = 1, lastMerge = 0;
-    let selectedTheme = 'classic', blackHoleActive = false, sunPulse = 0;
+    let score = 0, nextLevel = 0, isGameOver = false, isPaused = false, isFlipped = false;
+    let currentX = width/2, gravityCharge = 100, lastDrop = 0, lastMerge = 0, selectedTheme = 'classic';
+    let blackHoleActive = false, sunPulse = 0;
 
     const THEMES = {
         classic: ['#22d3ee', '#f43f5e', '#a3e635', '#94a3b8', '#8b5cf6', '#fbbf24', '#ef4444'],
         cosmos: ['#9ca3af', '#fb923c', '#38bdf8', '#ef4444', '#facc15', '#a78bfa', '#fde047'],
-        glass: ['rgba(56,189,248,0.3)', 'rgba(244,114,182,0.3)', 'rgba(74,222,128,0.3)', 'rgba(148,163,184,0.3)', 'rgba(167,139,250,0.3)', 'rgba(250,204,21,0.3)', 'rgba(248,113,113,0.3)']
+        glass: ['rgba(56,189,248,0.4)', 'rgba(244,114,182,0.4)', 'rgba(74,222,128,0.4)', 'rgba(148,163,184,0.4)', 'rgba(167,139,250,0.4)', 'rgba(250,204,21,0.4)', 'rgba(248,113,113,0.4)']
     };
-    const PLANET_NAMES = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "The Sun"];
 
     function setTheme(t) {
         selectedTheme = t;
@@ -97,22 +105,25 @@
 
     function updateNextPreview() {
         const preview = document.getElementById('next-preview');
+        const sizes = [12, 18, 24]; // Visual preview sizes
+        const r = sizes[nextLevel];
+        preview.style.width = r*2 + 'px';
+        preview.style.height = r*2 + 'px';
         preview.style.background = THEMES[selectedTheme][nextLevel];
-        preview.style.boxShadow = `0 0 10px ${THEMES[selectedTheme][nextLevel]}`;
+        preview.style.boxShadow = `0 0 15px ${THEMES[selectedTheme][nextLevel]}`;
     }
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('g-btn').style.display = 'block';
         document.getElementById('gravity-cooldown').style.display = 'block';
-        const best = localStorage.getItem('gm_best');
-        document.getElementById('best-score').innerText = (best && !isNaN(best)) ? best : 0;
+        document.getElementById('best-score').innerText = localStorage.getItem('gm_best') || 0;
         
-        // TUNNEL WALLS
-        const wallOpt = { isStatic: true, render: { fillStyle: 'rgba(255,255,255,0.05)' } };
+        // TUNNEL WALLS - VISIBLE RAILS
+        const railStyle = { fillStyle: 'rgba(255,255,255,0.15)', strokeStyle: 'rgba(255,255,255,0.2)', lineWidth: 1 };
         Composite.add(engine.world, [
-            Bodies.rectangle(20, height/2, 10, height, wallOpt),
-            Bodies.rectangle(width-20, height/2, 10, height, wallOpt)
+            Bodies.rectangle(5, height/2, 10, height, { isStatic: true, render: railStyle }),
+            Bodies.rectangle(width-5, height/2, 10, height, { isStatic: true, render: railStyle })
         ]);
 
         nextLevel = Math.floor(Math.random() * 3);
@@ -122,8 +133,13 @@
     }
 
     function spawn(x, y, lvl) {
-        const r = [18, 28, 40, 55, 72, 95, 120][lvl];
-        const b = Bodies.circle(x, y, r, { restitution: 0.3, plugin: { level: lvl }, render: { fillStyle: THEMES[selectedTheme][lvl] } });
+        const r = [20, 30, 42, 58, 75, 98, 125][lvl]; // Marble sizes
+        const b = Bodies.circle(x, y, r, { 
+            restitution: 0.3, 
+            friction: 0.1,
+            plugin: { level: lvl }, 
+            render: { fillStyle: THEMES[selectedTheme][lvl] } 
+        });
         Composite.add(engine.world, b);
     }
 
@@ -132,41 +148,46 @@
             const a = p.bodyA, b = p.bodyB;
             if (a.plugin?.level === b.plugin?.level && a.plugin?.level !== undefined) {
                 const lvl = a.plugin.level + 1;
-                if (lvl === 7) { // Supernova
-                    Composite.remove(engine.world, Composite.allBodies(engine.world).filter(b => !b.isStatic));
-                    score += 1000;
-                    triggerPop(a.position.x, a.position.y, "SUPERNOVA!", "#fff");
+                
+                if (lvl === 7) { // Supernova Merge
+                    Composite.remove(engine.world, Composite.allBodies(engine.world).filter(obj => !obj.isStatic));
+                    score += 2000;
                     return;
                 }
+
                 if (lvl > 3 && Math.random() < 0.1 && !blackHoleActive) triggerBlackHole();
-                const points = [2, 5, 10, 20, 40, 80, 150][a.plugin.level] * (Date.now() - lastMerge < 800 ? ++combo : combo = 1);
-                lastMerge = Date.now(); score += points;
+                
+                score += (lvl * 15);
                 document.getElementById('score-label').innerText = score;
+                
+                const midX = (a.position.x + b.position.x)/2;
+                const midY = (a.position.y + b.position.y)/2;
                 Composite.remove(engine.world, [a, b]);
-                spawn((a.position.x + b.position.x)/2, (a.position.y + b.position.y)/2, lvl);
-                triggerPop(a.position.x, a.position.y, selectedTheme === 'cosmos' ? PLANET_NAMES[lvl].toUpperCase() : `+${points}`, THEMES[selectedTheme][lvl]);
+                spawn(midX, midY, lvl);
             }
         });
     });
 
-    function triggerPop(x, y, txt, color) {
-        const div = document.createElement('div');
-        div.className = 'pop-text'; div.style.left = (x-50)+'px'; div.style.top = y+'px';
-        div.style.color = color; div.innerHTML = txt;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 800);
-    }
-
     function triggerBlackHole() {
         blackHoleActive = true;
         document.getElementById('event-banner').style.display = 'block';
-        setTimeout(() => { blackHoleActive = false; document.getElementById('event-banner').style.display = 'none'; }, 6000);
+        setTimeout(() => { 
+            blackHoleActive = false; 
+            document.getElementById('event-banner').style.display = 'none'; 
+        }, 7000);
     }
 
-    function flipGravity() { if (gravityCharge >= 100) { isFlipped = !isFlipped; engine.gravity.y *= -1; gravityCharge = 0; } }
+    function flipGravity() { 
+        if (gravityCharge >= 100) { 
+            isFlipped = !isFlipped; 
+            engine.gravity.y *= -1; 
+            gravityCharge = 0; 
+        } 
+    }
 
     function togglePause() {
-        isPaused = !isPaused; engine.timing.timeScale = isPaused ? 0 : 1;
+        isPaused = !isPaused; 
+        engine.timing.timeScale = isPaused ? 0 : 1;
         document.getElementById('pause-screen').style.display = isPaused ? 'flex' : 'none';
     }
 
@@ -175,54 +196,57 @@
         const ctx = render.context;
         sunPulse = (sunPulse + 0.05) % (Math.PI * 2);
         
-        // DOTTED AIM LINE
-        const limitY = isFlipped ? height - 150 : 150;
-        ctx.setLineDash([5, 10]); ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.beginPath(); ctx.moveTo(currentX, isFlipped ? height : 0); ctx.lineTo(currentX, limitY); ctx.stroke();
+        // VISUAL AIM LINE
+        const limitY = isFlipped ? height - 160 : 160;
+        ctx.setLineDash([8, 12]); 
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); 
+        ctx.moveTo(currentX, isFlipped ? height : 0); 
+        ctx.lineTo(currentX, limitY); 
+        ctx.stroke();
         
-        // DEATH LINE
-        ctx.strokeStyle = 'rgba(239,68,68,0.4)';
-        ctx.beginPath(); ctx.moveTo(20, limitY); ctx.lineTo(width-20, limitY); ctx.stroke();
+        // DEATH LINE (Warning)
+        ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+        ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke();
         ctx.setLineDash([]);
 
+        // RECHARGE G-METER
         if (gravityCharge < 100) {
-            gravityCharge += 0.25;
+            gravityCharge += 0.22;
             document.getElementById('gravity-fill').style.transform = `scaleY(${gravityCharge/100})`;
-        }
-
-        if (blackHoleActive) {
-            ctx.beginPath(); ctx.arc(width/2, height/2, 35 + Math.sin(sunPulse)*5, 0, Math.PI*2);
-            ctx.fillStyle = 'black'; ctx.fill(); ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 3; ctx.stroke();
         }
 
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin.level === undefined) return;
+            
+            // Black Hole Logic
             if (blackHoleActive) {
                 const force = Vector.sub({x: width/2, y: height/2}, b.position);
-                const dist = Vector.magnitude(force);
-                if (dist < 300) Body.applyForce(b, b.position, Vector.mult(Vector.normalise(force), 0.0006 * b.mass));
+                Body.applyForce(b, b.position, Vector.mult(Vector.normalise(force), 0.0007 * b.mass));
             }
 
-            // CUSTOM SKINS
+            // Theme Rendering
             const lvl = b.plugin.level;
             if (selectedTheme === 'cosmos') {
                 ctx.save(); ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
                 if (lvl === 5) { // Saturn
-                    ctx.beginPath(); ctx.ellipse(0,0, b.circleRadius*1.7, b.circleRadius*0.5, 0.3, 0, Math.PI*2);
-                    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 4; ctx.stroke();
+                    ctx.beginPath(); ctx.ellipse(0,0, b.circleRadius*1.8, b.circleRadius*0.5, 0.4, 0, Math.PI*2);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 4; ctx.stroke();
                 }
                 ctx.beginPath(); ctx.arc(0,0, b.circleRadius, 0, Math.PI*2);
-                ctx.shadowBlur = (lvl === 6) ? 20 : 8; ctx.shadowColor = THEMES.cosmos[lvl];
+                ctx.shadowBlur = (lvl === 6) ? 25 : 10; ctx.shadowColor = THEMES.cosmos[lvl];
                 ctx.fillStyle = THEMES.cosmos[lvl]; ctx.fill(); ctx.restore();
             } else if (selectedTheme === 'glass') {
-                ctx.save(); ctx.globalAlpha = 0.5;
-                const grad = ctx.createRadialGradient(b.position.x-b.circleRadius*0.3, b.position.y-b.circleRadius*0.3, 2, b.position.x, b.position.y, b.circleRadius);
+                ctx.save();
+                const grad = ctx.createRadialGradient(b.position.x-15, b.position.y-15, 5, b.position.x, b.position.y, b.circleRadius);
                 grad.addColorStop(0, '#fff'); grad.addColorStop(1, THEMES.glass[lvl]);
-                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.circleRadius, 0, Math.PI*2); ctx.fill(); ctx.restore();
+                ctx.fillStyle = grad; ctx.globalAlpha = 0.6;
+                ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.circleRadius, 0, Math.PI*2); ctx.fill(); ctx.restore();
             }
 
-            // LOSE CHECK
-            if (((!isFlipped && b.position.y < limitY) || (isFlipped && b.position.y > limitY)) && Math.abs(b.velocity.y) < 0.2) {
+            // Game Over Timing
+            if (((!isFlipped && b.position.y < limitY) || (isFlipped && b.position.y > limitY)) && Math.abs(b.velocity.y) < 0.3) {
                 if (!b.warn) b.warn = Date.now();
                 if (Date.now() - b.warn > 3000) {
                     isGameOver = true;
@@ -234,19 +258,23 @@
         });
     });
 
-    window.addEventListener('pointermove', (e) => currentX = Math.max(65, Math.min(width-65, e.clientX)));
+    // Inputs
+    window.addEventListener('pointermove', (e) => {
+        currentX = Math.max(40, Math.min(width-40, e.clientX));
+    });
+
     window.addEventListener('pointerup', (e) => {
-        if (isPaused || isGameOver || Date.now() - lastDrop < 600 || e.target.closest('.menu-btn, .overlay')) return;
-        currentLevel = nextLevel;
-        spawn(currentX, isFlipped ? height - 90 : 90, currentLevel);
+        if (isPaused || isGameOver || Date.now() - lastDrop < 650 || e.target.closest('.menu-btn, .overlay, #next-box')) return;
+        spawn(currentX, isFlipped ? height - 90 : 90, nextLevel);
         nextLevel = Math.floor(Math.random() * 3);
         updateNextPreview();
         lastDrop = Date.now();
     });
 
+    // Floor and Ceiling
     Composite.add(engine.world, [
-        Bodies.rectangle(width/2, height+25, width, 50, { isStatic: true, render: { visible: false } }),
-        Bodies.rectangle(width/2, -25, width, 50, { isStatic: true, render: { visible: false } })
+        Bodies.rectangle(width/2, height+30, width, 60, { isStatic: true, render: { visible: false } }),
+        Bodies.rectangle(width/2, -30, width, 60, { isStatic: true, render: { visible: false } })
     ]);
 </script>
 </body>
