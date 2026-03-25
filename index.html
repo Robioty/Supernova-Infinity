@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Absolute 2.7</title>
+    <title>Supernova: Celestial Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.05); }
-        body { margin: 0; overflow: hidden; background: #020617; font-family: 'Segoe UI', system-ui, sans-serif; touch-action: none; color: white; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #010409; font-family: 'Segoe UI', system-ui, sans-serif; touch-action: none; color: white; user-select: none; }
         
+        #game-canvas { transition: transform 0.1s ease-out; }
         #ui-layer { position: absolute; inset: 0; z-index: 1000; pointer-events: none; }
         #top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; align-items: flex-start; }
         .icon-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 50%; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
-        #score-container { flex-grow: 1; text-align: center; }
-        #score-label { font-size: 2.8em; font-weight: 900; text-shadow: 0 0 20px var(--accent); margin: 0; }
+        #score-label { flex-grow: 1; text-align: center; font-size: 2.8em; font-weight: 900; text-shadow: 0 0 20px var(--accent); margin: 0; }
         
-        /* Minimalist Gravity UI */
         #gravity-ui { position: fixed; right: 25px; bottom: 35px; opacity: 0.3; transition: 0.3s; pointer-events: auto; }
         #gravity-ui:hover { opacity: 1; }
-        #g-ring { width: 65px; height: 65px; border-radius: 50%; border: 2px solid rgba(251, 191, 36, 0.3); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--gold); background: rgba(0,0,0,0.2); backdrop-filter: blur(5px); }
+        #g-ring { width: 65px; height: 65px; border-radius: 50%; border: 2px solid rgba(251, 191, 36, 0.2); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--gold); background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); }
         #g-progress { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--gold); clip-path: inset(100% 0 0 0); transition: clip-path 0.1s linear; }
 
         #danger-alert { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%); color: var(--danger); font-size: 3em; font-weight: 900; display: none; z-index: 1500; animation: flash 0.5s infinite alternate; }
@@ -26,7 +25,7 @@
         #comet-hitbox { position: absolute; width: 120px; height: 120px; z-index: 900; pointer-events: auto; display: none; transform: translate(-50%, -50%); }
         #comet-visual { position: absolute; width: 25px; height: 25px; background: white; border-radius: 50%; top: 47px; left: 47px; box-shadow: -30px 0 40px var(--accent), 0 0 15px white; }
 
-        .overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.95); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+        .overlay { position: fixed; inset: 0; background: rgba(1, 4, 9, 0.98); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
         .menu-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); padding: 25px; border-radius: 24px; width: 85%; max-width: 380px; backdrop-filter: blur(20px); text-align: center; }
         .btn { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
@@ -36,9 +35,11 @@
     </style>
 </head>
 <body>
-    <div id="comet-hitbox" onclick="catchComet()"><div id="comet-visual"></div></div>
-    <div id="danger-alert">⚠️ DANGER ⚠️</div>
-    <div id="event-banner">BLACK HOLE DETECTED</div>
+    <div id="game-canvas">
+        <div id="comet-hitbox" onclick="catchComet()"><div id="comet-visual"></div></div>
+        <div id="danger-alert">⚠️ DANGER ⚠️</div>
+        <div id="event-banner">BLACK HOLE DETECTED</div>
+    </div>
 
     <div id="ui-layer">
         <div id="top-bar">
@@ -51,19 +52,19 @@
     </div>
 
     <div id="home-screen" class="overlay">
-        <h1 style="font-size: 3.5em; color: var(--accent); margin: 0;">SUPERNOVA</h1>
+        <h1 style="font-size: 3.5em; color: var(--accent); margin: 0; letter-spacing: -2px;">SUPERNOVA</h1>
         <div class="menu-card" style="margin-top: 20px;">
             <div id="home-stats" class="stats-grid"></div>
-            <p style="color: var(--gold); margin: 5px 0;">TOP MISSIONS</p>
-            <div id="leaderboard" style="font-size: 0.9em; margin-bottom: 15px; opacity: 0.8;"></div>
-            <button class="btn" onclick="handleStart()">START MISSION</button>
+            <p style="color: var(--gold); margin: 5px 0; font-size: 0.8em;">COMMANDER LEADERBOARD</p>
+            <div id="leaderboard" style="font-size: 0.9em; margin-bottom: 15px; opacity: 0.8; font-family: monospace;"></div>
+            <button class="btn" onclick="handleStart()">LAUNCH MISSION</button>
             <div style="margin-top:10px; font-size: 0.7em; opacity: 0.5;"><input type="checkbox" id="skip-tut"> Skip Briefing</div>
         </div>
     </div>
 
     <div id="tutorial-overlay" class="overlay" style="display:none">
         <div class="menu-card">
-            <h2 id="tut-title">MISSION BRIEF</h2>
+            <h2 id="tut-title" style="color: var(--accent);">MISSION BRIEF</h2>
             <p id="tut-desc"></p>
             <button class="btn" onclick="nextTut()">CONTINUE</button>
         </div>
@@ -74,7 +75,7 @@
             <h2>PAUSED</h2>
             <div id="pause-stats" class="stats-grid"></div>
             <button class="btn" onclick="togglePause()">RESUME</button>
-            <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="location.reload()">RESTART</button>
+            <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="location.reload()">ABANDON MISSION</button>
         </div>
     </div>
 
@@ -82,27 +83,28 @@
     const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
     const engine = Engine.create();
     const width = window.innerWidth, height = window.innerHeight;
-    const render = Render.create({ element: document.body, engine, options: { width, height, wireframes: false, background: 'transparent' } });
+    const render = Render.create({ element: document.getElementById('game-canvas'), engine, options: { width, height, wireframes: false, background: 'transparent' } });
 
     let score = 0, nextLevel = 0, isGameOver = false, isFlipped = false, gameStarted = false, isPaused = false;
     let currentX = width/2, gravityCharge = 120000, lastDropTime = 0, blackHoleActive = false;
     let totalMerges = 0, highestPlanet = 0, tutStep = 0;
     const CHARGE_TIME = 120000;
 
+    // Radius values reduced by 10% from V2.7
     const PLANET_DATA = [
-        { name: "Moon", r: 22, color: '#cbd5e1', glow: 'rgba(203,213,225,0.3)' }, 
-        { name: "Verda", r: 34, color: '#4ade80', glow: 'rgba(74,222,128,0.3)' }, 
-        { name: "Ares", r: 48, color: '#f87171', glow: 'rgba(248,113,113,0.3)' }, 
-        { name: "Solara", r: 62, color: '#fbbf24', stripes: true, glow: 'rgba(251,191,36,0.4)' }, 
-        { name: "Nebula", r: 82, color: '#818cf8', stripes: true, glow: 'rgba(129,140,248,0.4)' }, 
-        { name: "Saturn", r: 108, color: '#38bdf8', rings: true, glow: 'rgba(56,189,248,0.5)' }, 
-        { name: "Supernova", r: 138, color: '#f472b6', core: true, glow: 'rgba(244,114,182,0.8)' } 
+        { name: "Star", r: 20, color: '#ffffff', glow: 'rgba(255,255,255,0.6)', star: true }, 
+        { name: "Verda", r: 31, color: '#4ade80', glow: 'rgba(74,222,128,0.3)' }, 
+        { name: "Ares", r: 43, color: '#f87171', glow: 'rgba(248,113,113,0.3)' }, 
+        { name: "Solara", r: 56, color: '#fbbf24', stripes: true, glow: 'rgba(251,191,36,0.4)' }, 
+        { name: "Nebula", r: 74, color: '#818cf8', stripes: true, glow: 'rgba(129,140,248,0.4)' }, 
+        { name: "Saturn", r: 97, color: '#38bdf8', rings: true, glow: 'rgba(56,189,248,0.5)' }, 
+        { name: "The Sun", r: 124, color: '#ffcc33', sun: true, glow: 'rgba(255,165,0,0.8)' } 
     ];
 
     const TUTORIAL_CONTENT = [
-        { t: "ORBITAL MECHANICS", d: "Planets pull toward identical ones automatically. Merge to grow." },
-        { t: "THE DEATH LINE", d: "If a planet center stays above the red line for 3 seconds, mission fails." },
-        { t: "GRAVITY ENGINE", d: "Use 'G' to flip space. Refill by catching Comets." }
+        { t: "ORBITAL MECHANICS", d: "Merge celestial bodies to reach The Sun. Identical worlds pull together." },
+        { t: "THE DEATH LINE", d: "Keep your orbit clear. 3 seconds across the line ends the mission." },
+        { t: "GRAVITY ENGINE", d: "Flip the universe with 'G'. Catch passing comets to instant-refill." }
     ];
 
     function updateStatsUI() {
@@ -110,7 +112,7 @@
         const lb = JSON.parse(localStorage.getItem('sn_lb') || '[]');
         const html = `<div class="stat-box">MERGES<br><b>${stats.merges}</b></div><div class="stat-box">PEAK<br><b>${PLANET_DATA[stats.high].name}</b></div>`;
         document.getElementById('home-stats').innerHTML = document.getElementById('pause-stats').innerHTML = html;
-        document.getElementById('leaderboard').innerHTML = lb.map((s,i)=>`#${i+1} — ${s}`).join('<br>') || "New Pilot Registered";
+        document.getElementById('leaderboard').innerHTML = lb.map((s,i)=>`[${i+1}] ${s.toString().padStart(6, '0')}`).join('<br>') || "AWAITING DATA";
     }
 
     function handleStart() {
@@ -129,12 +131,19 @@
         }
     }
 
+    function triggerShake() {
+        const canvas = document.getElementById('game-canvas');
+        canvas.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
+        setTimeout(() => canvas.style.transform = 'translate(0,0)', 100);
+        if(navigator.vibrate) navigator.vibrate(20);
+    }
+
     function startGame() {
         document.getElementById('tutorial-overlay').style.display = 'none';
         gameStarted = true;
         Composite.add(engine.world, [
-            Bodies.rectangle(0, height/2, 10, height, { isStatic: true }),
-            Bodies.rectangle(width, height/2, 10, height, { isStatic: true }),
+            Bodies.rectangle(-5, height/2, 10, height, { isStatic: true }),
+            Bodies.rectangle(width+5, height/2, 10, height, { isStatic: true }),
             Bodies.rectangle(width/2, height+30, width, 60, { isStatic: true }),
             Bodies.rectangle(width/2, -30, width, 60, { isStatic: true })
         ]);
@@ -170,7 +179,6 @@
             isFlipped = !isFlipped;
             engine.gravity.y *= -1;
             gravityCharge = 0;
-            // FIX: Flush warning timers on flip
             Composite.allBodies(engine.world).forEach(b => { if(b.plugin) b.plugin.warn = 0; });
         }
     }
@@ -207,8 +215,13 @@
                 const mid = Vector.div(Vector.add(a.position, b.position), 2);
                 Composite.remove(engine.world, [a, b]);
                 if (nl < 7) spawn(mid.x, mid.y, nl);
-                score += (nl * 40);
+                if (nl > 3) triggerShake();
+                score += (nl * 45);
                 document.getElementById('score-label').innerText = score;
+                if (nl > 3 && Math.random() < 0.08) {
+                    blackHoleActive = true; document.getElementById('event-banner').style.display = 'block';
+                    setTimeout(() => { blackHoleActive = false; document.getElementById('event-banner').style.display = 'none'; }, 5000);
+                }
             }
         });
     });
@@ -219,20 +232,21 @@
         const limitY = isFlipped ? height - 160 : 160;
         let dangerFound = false;
 
-        // Death Line
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.setLineDash([10, 10]);
         ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke(); ctx.setLineDash([]);
 
-        // Anti-Spam Ghost Preview
+        // Animated Ghost Preview
         const timeSinceDrop = Date.now() - lastDropTime;
-        ctx.save(); ctx.globalAlpha = Math.min(0.2, (timeSinceDrop - 100) / 400);
-        drawPlanet(ctx, currentX, isFlipped ? height - 90 : 90, nextLevel);
+        const reloadProgress = Math.min(1, timeSinceDrop / 500);
+        ctx.save();
+        ctx.globalAlpha = 0.2 * reloadProgress;
+        const ghostR = PLANET_DATA[nextLevel].r * (0.8 + (0.2 * reloadProgress));
+        drawPlanet(ctx, currentX, isFlipped ? height - 90 : 90, nextLevel, 0, ghostR);
         ctx.restore();
 
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin?.lvl === undefined) return;
             drawPlanet(ctx, b.position.x, b.position.y, b.plugin.lvl, b.angle);
-
             const isCrossing = isFlipped ? (b.position.y > limitY) : (b.position.y < limitY);
             if (isCrossing && (Date.now() - b.timestamp > 2000)) {
                 dangerFound = true;
@@ -246,25 +260,46 @@
         document.getElementById('g-progress').style.clipPath = `inset(${100 - (gravityCharge/CHARGE_TIME*100)}% 0 0 0)`;
     });
 
-    function drawPlanet(ctx, x, y, lvl, angle = 0) {
+    function drawPlanet(ctx, x, y, lvl, angle = 0, overrideR = null) {
         const d = PLANET_DATA[lvl];
+        const r = overrideR || d.r;
         ctx.save(); ctx.translate(x, y);
-        const g = ctx.createRadialGradient(0, 0, d.r, 0, 0, d.r * 1.3);
+        
+        // Background Glow
+        const g = ctx.createRadialGradient(0, 0, r, 0, 0, r * 1.5);
         g.addColorStop(0, d.glow); g.addColorStop(1, 'transparent');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, d.r * 1.3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI*2); ctx.fill();
+
         ctx.rotate(angle);
-        const grad = ctx.createRadialGradient(-d.r/3, -d.r/3, 0, 0, 0, d.r);
-        grad.addColorStop(0, '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000000');
-        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, d.r, 0, Math.PI*2); ctx.fill();
-        if (d.stripes) {
-            ctx.clip(); ctx.globalAlpha = 0.2; ctx.fillStyle = 'white';
-            ctx.fillRect(-d.r, -d.r/3, d.r*2, d.r/5); ctx.fillRect(-d.r, d.r/4, d.r*2, d.r/8);
+        if (d.star) {
+            // Realistic Star: Pure white with intense inner glow
+            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+            const sGrad = ctx.createRadialGradient(0,0,0,0,0,r);
+            sGrad.addColorStop(0, 'white'); sGrad.addColorStop(1, '#f0f9ff');
+            ctx.fillStyle = sGrad; ctx.fill();
+        } else if (d.sun) {
+            // Realistic Sun: Fiery gradients + Solar Corona
+            const sGrad = ctx.createRadialGradient(-r/4, -r/4, 0, 0, 0, r);
+            sGrad.addColorStop(0, '#fff5cc'); sGrad.addColorStop(0.2, '#ffcc33'); sGrad.addColorStop(0.5, '#ff8800'); sGrad.addColorStop(1, '#cc3300');
+            ctx.fillStyle = sGrad; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+            // Pulse effect for sun corona
+            ctx.globalAlpha = 0.3; ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(0,0, r + Math.sin(Date.now()/200)*3, 0, Math.PI*2); ctx.stroke();
+        } else {
+            // High-Detail Planet
+            const grad = ctx.createRadialGradient(-r/3, -r/3, 0, 0, 0, r);
+            grad.addColorStop(0, '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000000');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+            if (d.stripes) {
+                ctx.clip(); ctx.globalAlpha = 0.2; ctx.fillStyle = 'white';
+                ctx.fillRect(-r, -r/3, r*2, r/5); ctx.fillRect(-r, r/4, r*2, r/8);
+            }
         }
         ctx.restore();
         if (d.rings) {
             ctx.save(); ctx.translate(x,y); ctx.rotate(angle+0.5);
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = d.r/6;
-            ctx.beginPath(); ctx.ellipse(0, 0, d.r*1.8, d.r*0.5, 0, 0, Math.PI*2); ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = r/6;
+            ctx.beginPath(); ctx.ellipse(0, 0, r*1.8, r*0.5, 0, 0, Math.PI*2); ctx.stroke();
             ctx.restore();
         }
     }
@@ -294,6 +329,7 @@
         spawn(currentX, isFlipped ? height - 90 : 90, nextLevel);
         nextLevel = Math.floor(Math.random() * 3);
         lastDropTime = Date.now();
+        triggerShake();
     });
 </script>
 </body>
