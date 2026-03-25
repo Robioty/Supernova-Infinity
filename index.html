@@ -1,9 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Celestial Pro</title>
+    <title>Supernova: Celestial v2.9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.05); }
@@ -58,7 +62,7 @@
             <p style="color: var(--gold); margin: 5px 0; font-size: 0.8em;">COMMANDER LEADERBOARD</p>
             <div id="leaderboard" style="font-size: 0.9em; margin-bottom: 15px; opacity: 0.8; font-family: monospace;"></div>
             <button class="btn" onclick="handleStart()">LAUNCH MISSION</button>
-            <div style="margin-top:10px; font-size: 0.7em; opacity: 0.5;"><input type="checkbox" id="skip-tut"> Skip Briefing</div>
+            <div style="margin-top:10px; font-size: 0.7em; opacity: 0.4;">Build ID: <span id="cache-ver"></span></div>
         </div>
     </div>
 
@@ -80,6 +84,10 @@
     </div>
 
 <script>
+    // CACHE BUSTING LOGIC: Unique ID for every push
+    const BUILD_ID = "v2.9-" + Date.now().toString().slice(-4);
+    document.getElementById('cache-ver').innerText = BUILD_ID;
+
     const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
     const engine = Engine.create();
     const width = window.innerWidth, height = window.innerHeight;
@@ -90,7 +98,7 @@
     let totalMerges = 0, highestPlanet = 0, tutStep = 0;
     const CHARGE_TIME = 120000;
 
-    // Radius values reduced by 10% from V2.7
+    // Radius reduced by 10%
     const PLANET_DATA = [
         { name: "Star", r: 20, color: '#ffffff', glow: 'rgba(255,255,255,0.6)', star: true }, 
         { name: "Verda", r: 31, color: '#4ade80', glow: 'rgba(74,222,128,0.3)' }, 
@@ -115,27 +123,27 @@
         document.getElementById('leaderboard').innerHTML = lb.map((s,i)=>`[${i+1}] ${s.toString().padStart(6, '0')}`).join('<br>') || "AWAITING DATA";
     }
 
-    function handleStart() {
-        document.getElementById('home-screen').style.display = 'none';
-        if (document.getElementById('skip-tut').checked) startGame(); else {
-            document.getElementById('tutorial-overlay').style.display = 'flex';
-            nextTut();
-        }
-    }
-
-    function nextTut() {
-        if (tutStep >= TUTORIAL_CONTENT.length) startGame(); else {
-            document.getElementById('tut-title').innerText = TUTORIAL_CONTENT[tutStep].t;
-            document.getElementById('tut-desc').innerText = TUTORIAL_CONTENT[tutStep].d;
-            tutStep++;
-        }
-    }
-
     function triggerShake() {
         const canvas = document.getElementById('game-canvas');
         canvas.style.transform = `translate(${(Math.random()-0.5)*10}px, ${(Math.random()-0.5)*10}px)`;
         setTimeout(() => canvas.style.transform = 'translate(0,0)', 100);
         if(navigator.vibrate) navigator.vibrate(20);
+    }
+
+    function handleStart() {
+        // Force state refresh on start
+        document.getElementById('home-screen').style.display = 'none';
+        document.getElementById('tutorial-overlay').style.display = 'flex';
+        nextTut();
+    }
+
+    function nextTut() {
+        if (tutStep >= TUTORIAL_CONTENT.length) startGame(); else {
+            const c = TUTORIAL_CONTENT[tutStep];
+            document.getElementById('tut-title').innerText = c.t;
+            document.getElementById('tut-desc').innerText = c.d;
+            tutStep++;
+        }
     }
 
     function startGame() {
@@ -179,6 +187,7 @@
             isFlipped = !isFlipped;
             engine.gravity.y *= -1;
             gravityCharge = 0;
+            // PHANTOM DEATH FIX: Flush all warning states
             Composite.allBodies(engine.world).forEach(b => { if(b.plugin) b.plugin.warn = 0; });
         }
     }
@@ -191,6 +200,7 @@
                 const pull = Vector.sub({x: width/2, y: height/2}, bA.position);
                 Body.applyForce(bA, bA.position, Vector.mult(Vector.normalise(pull), 0.0006 * bA.mass));
             }
+            // SNAPPY MAGNETIC LOGIC
             for (let j = i + 1; j < bodies.length; j++) {
                 const bB = bodies[j];
                 if (bA.plugin.lvl === bB.plugin.lvl && !bA.plugin.merged && !bB.plugin.merged) {
@@ -218,6 +228,7 @@
                 if (nl > 3) triggerShake();
                 score += (nl * 45);
                 document.getElementById('score-label').innerText = score;
+                // BLACK HOLE CHANCE
                 if (nl > 3 && Math.random() < 0.08) {
                     blackHoleActive = true; document.getElementById('event-banner').style.display = 'block';
                     setTimeout(() => { blackHoleActive = false; document.getElementById('event-banner').style.display = 'none'; }, 5000);
@@ -232,10 +243,11 @@
         const limitY = isFlipped ? height - 160 : 160;
         let dangerFound = false;
 
+        // Death Line
         ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.setLineDash([10, 10]);
         ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke(); ctx.setLineDash([]);
 
-        // Animated Ghost Preview
+        // Anti-Spam Preview
         const timeSinceDrop = Date.now() - lastDropTime;
         const reloadProgress = Math.min(1, timeSinceDrop / 500);
         ctx.save();
@@ -247,6 +259,7 @@
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin?.lvl === undefined) return;
             drawPlanet(ctx, b.position.x, b.position.y, b.plugin.lvl, b.angle);
+            // MERCY LINE LOGIC
             const isCrossing = isFlipped ? (b.position.y > limitY) : (b.position.y < limitY);
             if (isCrossing && (Date.now() - b.timestamp > 2000)) {
                 dangerFound = true;
@@ -264,29 +277,22 @@
         const d = PLANET_DATA[lvl];
         const r = overrideR || d.r;
         ctx.save(); ctx.translate(x, y);
-        
-        // Background Glow
         const g = ctx.createRadialGradient(0, 0, r, 0, 0, r * 1.5);
         g.addColorStop(0, d.glow); g.addColorStop(1, 'transparent');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 1.5, 0, Math.PI*2); ctx.fill();
-
         ctx.rotate(angle);
         if (d.star) {
-            // Realistic Star: Pure white with intense inner glow
             ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
             const sGrad = ctx.createRadialGradient(0,0,0,0,0,r);
             sGrad.addColorStop(0, 'white'); sGrad.addColorStop(1, '#f0f9ff');
             ctx.fillStyle = sGrad; ctx.fill();
         } else if (d.sun) {
-            // Realistic Sun: Fiery gradients + Solar Corona
             const sGrad = ctx.createRadialGradient(-r/4, -r/4, 0, 0, 0, r);
             sGrad.addColorStop(0, '#fff5cc'); sGrad.addColorStop(0.2, '#ffcc33'); sGrad.addColorStop(0.5, '#ff8800'); sGrad.addColorStop(1, '#cc3300');
             ctx.fillStyle = sGrad; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-            // Pulse effect for sun corona
             ctx.globalAlpha = 0.3; ctx.strokeStyle = '#ffaa00'; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(0,0, r + Math.sin(Date.now()/200)*3, 0, Math.PI*2); ctx.stroke();
         } else {
-            // High-Detail Planet
             const grad = ctx.createRadialGradient(-r/3, -r/3, 0, 0, 0, r);
             grad.addColorStop(0, '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000000');
             ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
