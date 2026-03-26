@@ -10,12 +10,10 @@
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.08); }
         body { margin: 0; overflow: hidden; background: #010206; font-family: 'Segoe UI', system-ui, sans-serif; touch-action: none; color: white; user-select: none; }
         
-        /* FX Layers */
         #nebula { position: fixed; inset: 0; background: radial-gradient(circle at 50% 50%, #111827 0%, #010206 100%); z-index: -2; }
         #stars-parallax { position: fixed; inset: -100px; background-image: radial-gradient(white 1px, transparent 1px); background-size: 100px 100px; opacity: 0.2; z-index: -1; pointer-events: none; }
         #game-canvas-container { transition: transform 0.1s ease-out; }
 
-        /* UI Elements */
         #ui-layer { position: absolute; inset: 0; z-index: 1000; pointer-events: none; }
         #top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; align-items: center; }
         .icon-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 50%; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
@@ -28,12 +26,10 @@
         #g-ring { width: 65px; height: 65px; border-radius: 50%; border: 2px solid rgba(251, 191, 36, 0.2); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--gold); background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
         #g-progress { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--gold); clip-path: inset(100% 0 0 0); transition: clip-path 0.1s linear; }
 
-        /* Popups & Alerts */
         #combo-popup { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); font-size: 2.5em; color: var(--gold); font-weight: 900; opacity: 0; transition: 0.3s; text-shadow: 0 0 15px var(--gold); pointer-events: none; z-index: 1100; }
         #danger-alert { position: fixed; top: 25%; left: 50%; transform: translate(-50%, -50%); color: var(--danger); font-size: 3em; font-weight: 900; display: none; z-index: 1500; animation: flash 0.5s infinite alternate; }
         #event-banner { position: fixed; top: 140px; width: 100%; text-align: center; color: var(--pink); font-weight: 900; font-size: 1.8em; display: none; z-index: 500; text-shadow: 0 0 10px var(--pink); }
 
-        /* Overlays */
         .overlay { position: fixed; inset: 0; background: rgba(1, 4, 9, 0.97); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; }
         .menu-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 28px; width: 85%; max-width: 380px; backdrop-filter: blur(25px); text-align: center; }
         .btn { background: var(--accent); color: white; border: none; padding: 18px; border-radius: 14px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 12px; font-size: 1.1em; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3); }
@@ -116,7 +112,6 @@
     let particles = [], comboCount = 0, lastMergeTime = 0, tutStep = 0, comet = null;
     const CHARGE_TIME = 120000;
 
-    // RESTORED & UPDATED: 10-Tier Planet Data (20% size reduced from v3.5)
     const PLANET_DATA = [
         { name: "Star", r: 16, color: '#ffffff', glow: 'rgba(255,255,255,0.6)', star: true },
         { name: "Verda", r: 24, color: '#4ade80', glow: 'rgba(74,222,128,0.3)' },
@@ -234,7 +229,7 @@
     Events.on(engine, 'beforeUpdate', () => {
         if (isPaused) return;
         const bodies = Composite.allBodies(engine.world).filter(b => b.plugin?.lvl !== undefined);
-        const gravitationalHeads = bodies.filter(b => b.plugin.lvl >= 6); // Sun, Pulsar, Singularity, Attractor
+        const gravitationalHeads = bodies.filter(b => b.plugin.lvl >= 6);
         const stars = bodies.filter(b => b.plugin.lvl === 0);
 
         bodies.forEach((bA, i) => {
@@ -242,7 +237,6 @@
                 const pull = Vector.sub({x: width/2, y: height/2}, bA.position);
                 Body.applyForce(bA, bA.position, Vector.mult(Vector.normalise(pull), 0.0006 * bA.mass));
             }
-            // Magnetic Snapping logic
             for (let j = i + 1; j < bodies.length; j++) {
                 const bB = bodies[j];
                 if (bA.plugin.lvl === bB.plugin.lvl && !bA.plugin.merged && !bB.plugin.merged) {
@@ -255,7 +249,6 @@
             }
         });
 
-        // Massive Body Attraction (Sun/Singularity eating Stars)
         gravitationalHeads.forEach(head => {
             stars.forEach(star => {
                 const dist = Vector.magnitude(Vector.sub(head.position, star.position));
@@ -312,11 +305,9 @@
         const limitY = isFlipped ? height - 160 : 160;
         let dangerFound = false;
 
-        // Shadow Guide
         ctx.setLineDash([8, 12]); ctx.strokeStyle = 'rgba(255,255,255,0.15)';
         ctx.beginPath(); ctx.moveTo(currentX, 0); ctx.lineTo(currentX, height); ctx.stroke(); ctx.setLineDash([]);
 
-        // Comet Logic
         if (comet) {
             comet.x += comet.vx; comet.y += comet.vy;
             ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = 'cyan';
@@ -338,7 +329,6 @@
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin?.lvl === undefined) return;
             drawPlanet(ctx, b.position.x, b.position.y, b.plugin.lvl, b.angle);
-            
             const isCrossing = isFlipped ? (b.position.y > limitY) : (b.position.y < limitY);
             if (isCrossing && (Date.now() - b.timestamp > 2000)) {
                 dangerFound = true;
@@ -355,13 +345,10 @@
     function drawPlanet(ctx, x, y, lvl, angle) {
         const d = PLANET_DATA[lvl];
         ctx.save(); ctx.translate(x, y);
-        
         const glow = ctx.createRadialGradient(0, 0, d.r, 0, 0, d.r * 1.6);
         glow.addColorStop(0, d.glow); glow.addColorStop(1, 'transparent');
         ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, d.r * 1.6, 0, Math.PI*2); ctx.fill();
-        
         ctx.rotate(angle);
-        
         if (d.singularity) {
             ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0,0,d.r,0,Math.PI*2); ctx.fill();
             ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
@@ -370,7 +357,6 @@
             grad.addColorStop(0, d.sun || d.star ? '#fff' : '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000');
             ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, d.r, 0, Math.PI*2); ctx.fill();
         }
-
         if (d.stripes) {
             ctx.clip(); ctx.globalAlpha = 0.2; ctx.fillStyle = 'white';
             ctx.fillRect(-d.r, -d.r/3, d.r*2, d.r/5); ctx.fillRect(-d.r, d.r/4, d.r*2, d.r/8);
@@ -391,11 +377,9 @@
     window.addEventListener('pointerup', e => {
         if (!gameStarted || isPaused || Date.now() - lastDropTime < 600) return;
         if (e.target.closest('.icon-btn, .btn, #gravity-ui')) return;
-        
         if (comet && Vector.magnitude(Vector.sub({x: comet.x, y: comet.y}, {x: e.clientX, y: e.clientY})) < 60) {
             gravityCharge = CHARGE_TIME; comet = null; return;
         }
-
         spawn(currentX, isFlipped ? height - 100 : 100, nextLevel);
         nextLevel = Math.floor(Math.random() * 3);
         updatePreview();
