@@ -4,7 +4,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Infinity v3.5</title>
+    <title>Supernova: Infinity v4.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.08); }
@@ -21,6 +21,9 @@
         .icon-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 50%; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
         #score-label { flex-grow: 1; text-align: center; font-size: 2.8em; font-weight: 900; text-shadow: 0 0 20px var(--accent); margin: 0; }
         
+        #preview-box { position: fixed; top: 85px; right: 20px; width: 60px; height: 60px; background: var(--glass); border: 1px solid rgba(255,255,255,0.15); border-radius: 15px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        #next-vis { border-radius: 50%; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
         #gravity-ui { position: fixed; right: 25px; bottom: 35px; pointer-events: auto; }
         #g-ring { width: 65px; height: 65px; border-radius: 50%; border: 2px solid rgba(251, 191, 36, 0.2); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--gold); background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
         #g-progress { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--gold); clip-path: inset(100% 0 0 0); transition: clip-path 0.1s linear; }
@@ -34,7 +37,7 @@
         .overlay { position: fixed; inset: 0; background: rgba(1, 4, 9, 0.97); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; }
         .menu-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.15); padding: 30px; border-radius: 28px; width: 85%; max-width: 380px; backdrop-filter: blur(25px); text-align: center; }
         .btn { background: var(--accent); color: white; border: none; padding: 18px; border-radius: 14px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 12px; font-size: 1.1em; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3); }
-        .btn-alt { background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-alt { background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); margin-top: 10px; }
         
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
         .stat-box { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; font-size: 0.8em; color: #94a3b8; }
@@ -59,6 +62,7 @@
             <button class="icon-btn" onclick="togglePause()">⚙️</button>
             <div id="score-label">0</div>
         </div>
+        <div id="preview-box"><div id="next-vis"></div></div>
         <div id="gravity-ui" onclick="flipGravity()">
             <div id="g-ring">G<div id="g-progress"></div></div>
         </div>
@@ -72,11 +76,10 @@
                 <div class="stat-box">BEST WORLD<br><b id="h-peak">-</b></div>
             </div>
             <div id="lb-box">
-                <div style="opacity:0.5; font-size:0.7em; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Top Commanders</div>
-                <div id="lb-list" style="line-height:1.6">Awaiting Mission Data...</div>
+                <div style="opacity:0.5; font-size:0.7em; margin-bottom:8px; text-transform:uppercase;">Top Commanders</div>
+                <div id="lb-list" style="line-height:1.6">No Mission Data</div>
             </div>
-            <button class="btn" onclick="handleStart()">LAUNCH MISSION</button>
-            <div style="margin-top:15px; font-size:0.6em; opacity:0.3; letter-spacing:1px;">ENGI-BUILD: <span id="ver"></span></div>
+            <button class="btn" onclick="handleLaunch()">LAUNCH MISSION</button>
         </div>
     </div>
 
@@ -90,17 +93,14 @@
 
     <div id="pause-menu" class="overlay" style="display:none">
         <div class="menu-card">
-            <h2 style="margin:0 0 20px 0; letter-spacing:2px;">PAUSED</h2>
+            <h2 style="margin:0 0 20px 0;">PAUSED</h2>
             <button class="btn" onclick="togglePause()">RESUME MISSION</button>
-            <button class="btn btn-alt" onclick="sendBugReport()">🐞 REPORT COSMIC GLITCH</button>
+            <button class="btn btn-alt" onclick="sendBugReport()">🐞 REPORT GLITCH</button>
             <button class="btn btn-alt" style="color:var(--danger)" onclick="location.reload()">ABANDON MISSION</button>
         </div>
     </div>
 
 <script>
-    const BUILD_ID = "v3.5-FULLSTACK-" + Date.now().toString().slice(-4);
-    document.getElementById('ver').innerText = BUILD_ID;
-
     const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
     const engine = Engine.create();
     const width = window.innerWidth, height = window.innerHeight;
@@ -108,33 +108,32 @@
     const render = Render.create({ 
         element: document.getElementById('game-canvas-container'), 
         engine, 
-        options: { 
-            width, height, 
-            wireframes: false, 
-            background: 'transparent', 
-            preserveDrawingBuffer: true 
-        } 
+        options: { width, height, wireframes: false, background: 'transparent', preserveDrawingBuffer: true } 
     });
 
-    let score = 0, nextLevel = 0, gameStarted = false, isPaused = false, isFlipped = false, isGameOver = false;
+    let score = 0, nextLevel = 0, gameStarted = false, isPaused = false, isFlipped = false;
     let currentX = width/2, gravityCharge = 120000, lastDropTime = 0, blackHoleActive = false;
-    let particles = [], comboCount = 0, lastMergeTime = 0, tutStep = 0;
+    let particles = [], comboCount = 0, lastMergeTime = 0, tutStep = 0, comet = null;
     const CHARGE_TIME = 120000;
 
+    // RESTORED & UPDATED: 10-Tier Planet Data (20% size reduced from v3.5)
     const PLANET_DATA = [
-        { name: "Star", r: 20, color: '#ffffff', glow: 'rgba(255,255,255,0.6)', star: true },
-        { name: "Verda", r: 31, color: '#4ade80', glow: 'rgba(74,222,128,0.3)' },
-        { name: "Ares", r: 43, color: '#f87171', glow: 'rgba(248,113,113,0.3)' },
-        { name: "Solara", r: 56, color: '#fbbf24', stripes: true, glow: 'rgba(251,191,36,0.4)' },
-        { name: "Nebula", r: 74, color: '#818cf8', stripes: true, glow: 'rgba(129,140,248,0.4)' },
-        { name: "Saturn", r: 97, color: '#38bdf8', rings: true, glow: 'rgba(56,189,248,0.5)' },
-        { name: "The Sun", r: 124, color: '#ffcc33', sun: true, glow: 'rgba(255,165,0,0.8)' }
+        { name: "Star", r: 16, color: '#ffffff', glow: 'rgba(255,255,255,0.6)', star: true },
+        { name: "Verda", r: 24, color: '#4ade80', glow: 'rgba(74,222,128,0.3)' },
+        { name: "Ares", r: 34, color: '#f87171', glow: 'rgba(248,113,113,0.3)' },
+        { name: "Solara", r: 45, color: '#fbbf24', stripes: true, glow: 'rgba(251,191,36,0.4)' },
+        { name: "Nebula", r: 59, color: '#818cf8', stripes: true, glow: 'rgba(129,140,248,0.4)' },
+        { name: "Saturn", r: 78, color: '#38bdf8', rings: true, glow: 'rgba(56,189,248,0.5)' },
+        { name: "The Sun", r: 99, color: '#ffcc33', sun: true, glow: 'rgba(255,165,0,0.8)' },
+        { name: "Pulsar", r: 120, color: '#e879f9', stripes: true, glow: 'rgba(232,121,249,0.7)' },
+        { name: "Singularity", r: 145, color: '#000000', glow: 'rgba(255,255,255,0.4)', singularity: true },
+        { name: "The Great Attractor", r: 180, color: '#f472b6', sun: true, glow: 'rgba(244,114,182,0.9)' }
     ];
 
     const TUTORIAL_CONTENT = [
-        { t: "ORBITAL MECHANICS", d: "Drop celestial bodies. Identical worlds pull toward each other and merge into greater forms." },
-        { t: "THE DEATH LINE", d: "Keep the upper orbit clear. If a body remains across the line for 3 seconds, the mission fails." },
-        { t: "GRAVITY ENGINE", d: "Use 'G' to flip gravity. It recharges over time or instantly when you catch a passing Comet." }
+        { t: "ORBITAL MECHANICS", d: "Drop celestial bodies. Identical worlds pull toward each other and merge." },
+        { t: "THE DEATH LINE", d: "Keep the upper orbit clear. 3 seconds across the line fails the mission." },
+        { t: "GRAVITY ENGINE", d: "Use 'G' to flip gravity. Recharges over time or instantly by catching a Comet." }
     ];
 
     function initData() {
@@ -149,13 +148,7 @@
 
     function createExplosion(x, y, color) {
         for(let i=0; i<15; i++) {
-            particles.push({ 
-                x, y, 
-                vx: (Math.random()-0.5)*12, 
-                vy: (Math.random()-0.5)*12, 
-                life: 1.0, 
-                color 
-            });
+            particles.push({ x, y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 1.0, color });
         }
     }
 
@@ -166,7 +159,7 @@
         if(navigator.vibrate) navigator.vibrate(40);
     }
 
-    function handleStart() {
+    function handleLaunch() {
         const seen = localStorage.getItem('sn_tut');
         document.getElementById('home-screen').style.display = 'none';
         if(!seen) {
@@ -191,12 +184,14 @@
         document.getElementById('tutorial-overlay').style.display = 'none';
         gameStarted = true;
         Composite.add(engine.world, [
-            Bodies.rectangle(width/2, height+35, width, 70, { isStatic: true, label: 'wall' }),
-            Bodies.rectangle(-15, height/2, 30, height, { isStatic: true, label: 'wall' }),
-            Bodies.rectangle(width+15, height/2, 30, height, { isStatic: true, label: 'wall' }),
-            Bodies.rectangle(width/2, -35, width, 70, { isStatic: true, label: 'wall' })
+            Bodies.rectangle(width/2, height+35, width, 70, { isStatic: true }),
+            Bodies.rectangle(-15, height/2, 30, height, { isStatic: true }),
+            Bodies.rectangle(width+15, height/2, 30, height, { isStatic: true }),
+            Bodies.rectangle(width/2, -35, width, 70, { isStatic: true })
         ]);
         Render.run(render); Runner.run(engine);
+        nextLevel = Math.floor(Math.random() * 3);
+        updatePreview();
     }
 
     function spawn(x, y, lvl) {
@@ -205,6 +200,15 @@
             plugin: { lvl, merged: false, warn: 0 } 
         });
         Composite.add(engine.world, b);
+    }
+
+    function updatePreview() {
+        const vis = document.getElementById('next-vis');
+        const p = PLANET_DATA[nextLevel];
+        vis.style.background = p.color;
+        vis.style.width = (p.r * 0.8) + 'px';
+        vis.style.height = (p.r * 0.8) + 'px';
+        vis.style.boxShadow = `0 0 15px ${p.color}`;
     }
 
     function flipGravity() {
@@ -224,14 +228,13 @@
 
     async function sendBugReport() {
         const snap = render.canvas.toDataURL();
-        console.log("Bug Captured:", snap.slice(0,50));
-        alert("COSMIC LOG GENERATED\nBuild: " + BUILD_ID + "\nScreenshot sent to investigator console.");
+        alert("COSMIC LOG GENERATED\nScreenshot captured in buffer.");
     }
 
     Events.on(engine, 'beforeUpdate', () => {
         if (isPaused) return;
         const bodies = Composite.allBodies(engine.world).filter(b => b.plugin?.lvl !== undefined);
-        const suns = bodies.filter(b => b.plugin.lvl === 6);
+        const gravitationalHeads = bodies.filter(b => b.plugin.lvl >= 6); // Sun, Pulsar, Singularity, Attractor
         const stars = bodies.filter(b => b.plugin.lvl === 0);
 
         bodies.forEach((bA, i) => {
@@ -239,25 +242,26 @@
                 const pull = Vector.sub({x: width/2, y: height/2}, bA.position);
                 Body.applyForce(bA, bA.position, Vector.mult(Vector.normalise(pull), 0.0006 * bA.mass));
             }
-            // Magnetic Snapping Logic
+            // Magnetic Snapping logic
             for (let j = i + 1; j < bodies.length; j++) {
                 const bB = bodies[j];
                 if (bA.plugin.lvl === bB.plugin.lvl && !bA.plugin.merged && !bB.plugin.merged) {
                     const dist = Vector.magnitude(Vector.sub(bA.position, bB.position));
-                    if (dist < (PLANET_DATA[bA.plugin.lvl].r + PLANET_DATA[bB.plugin.lvl].r) * 2) {
-                        const force = Vector.mult(Vector.normalise(Vector.sub(bB.position, bA.position)), 0.005 * bA.mass);
+                    if (dist < 250) {
+                        const force = Vector.mult(Vector.normalise(Vector.sub(bB.position, bA.position)), 0.0005 * bA.mass);
                         Body.applyForce(bA, bA.position, force);
                     }
                 }
             }
         });
 
-        suns.forEach(sun => {
+        // Massive Body Attraction (Sun/Singularity eating Stars)
+        gravitationalHeads.forEach(head => {
             stars.forEach(star => {
-                const dist = Vector.magnitude(Vector.sub(sun.position, star.position));
+                const dist = Vector.magnitude(Vector.sub(head.position, star.position));
                 if (dist < 280) {
-                    Body.applyForce(star, star.position, Vector.mult(Vector.normalise(Vector.sub(sun.position, star.position)), 0.0009 * star.mass));
-                    if (dist < 120) {
+                    Body.applyForce(star, star.position, Vector.mult(Vector.normalise(Vector.sub(head.position, star.position)), 0.0009 * star.mass));
+                    if (dist < (PLANET_DATA[head.plugin.lvl].r + 10)) {
                         createExplosion(star.position.x, star.position.y, 'white');
                         Composite.remove(engine.world, star);
                         score += 250;
@@ -276,9 +280,8 @@
                 const nl = a.plugin.lvl + 1;
                 const mid = Vector.div(Vector.add(a.position, b.position), 2);
                 
-                const now = Date.now();
-                comboCount = (now - lastMergeTime < 1500) ? comboCount + 1 : 1;
-                lastMergeTime = now;
+                comboCount = (Date.now() - lastMergeTime < 1500) ? comboCount + 1 : 1;
+                lastMergeTime = Date.now();
 
                 if(comboCount > 1) {
                     const pop = document.getElementById('combo-popup');
@@ -288,13 +291,13 @@
 
                 createExplosion(mid.x, mid.y, PLANET_DATA[a.plugin.lvl].color);
                 Composite.remove(engine.world, [a, b]);
-                if (nl < 7) spawn(mid.x, mid.y, nl);
+                if (nl < 10) spawn(mid.x, mid.y, nl);
                 if (nl > 3) triggerShake();
                 
-                score += (nl * 75 * comboCount);
+                score += (nl * 100 * comboCount);
                 document.getElementById('score-label').innerText = score;
 
-                if (nl > 4 && Math.random() < 0.12) {
+                if (nl > 5 && Math.random() < 0.12) {
                     blackHoleActive = true; 
                     document.getElementById('event-banner').style.display = 'block';
                     setTimeout(() => { blackHoleActive = false; document.getElementById('event-banner').style.display = 'none'; }, 5000);
@@ -309,7 +312,20 @@
         const limitY = isFlipped ? height - 160 : 160;
         let dangerFound = false;
 
-        document.getElementById('stars-parallax').style.transform = `translate(${currentX/15}px, ${isFlipped ? 20 : -20}px)`;
+        // Shadow Guide
+        ctx.setLineDash([8, 12]); ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.beginPath(); ctx.moveTo(currentX, 0); ctx.lineTo(currentX, height); ctx.stroke(); ctx.setLineDash([]);
+
+        // Comet Logic
+        if (comet) {
+            comet.x += comet.vx; comet.y += comet.vy;
+            ctx.fillStyle = '#fff'; ctx.shadowBlur = 15; ctx.shadowColor = 'cyan';
+            ctx.beginPath(); ctx.arc(comet.x, comet.y, 5, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            if (comet.x > width + 100) comet = null;
+        } else if (Math.random() < 0.003) {
+            comet = { x: -50, y: 200 + Math.random()*300, vx: 7, vy: (Math.random()-0.5)*2 };
+        }
 
         particles = particles.filter(p => p.life > 0);
         particles.forEach(p => {
@@ -319,9 +335,6 @@
         });
         ctx.globalAlpha = 1;
 
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.setLineDash([10, 10]);
-        ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke(); ctx.setLineDash([]);
-
         Composite.allBodies(engine.world).forEach(b => {
             if (b.isStatic || b.plugin?.lvl === undefined) return;
             drawPlanet(ctx, b.position.x, b.position.y, b.plugin.lvl, b.angle);
@@ -330,12 +343,12 @@
             if (isCrossing && (Date.now() - b.timestamp > 2000)) {
                 dangerFound = true;
                 if (!b.plugin.warn) b.plugin.warn = Date.now();
-                if (Date.now() - b.plugin.warn > 3000) gameOver();
+                if (Date.now() - b.plugin.warn > 3000) location.reload();
             } else b.plugin.warn = 0;
         });
 
         document.getElementById('danger-alert').style.display = dangerFound ? 'block' : 'none';
-        if (gravityCharge < CHARGE_TIME) gravityCharge += 100;
+        if (gravityCharge < CHARGE_TIME) gravityCharge += 150;
         document.getElementById('g-progress').style.clipPath = `inset(${100 - (gravityCharge/CHARGE_TIME*100)}% 0 0 0)`;
     });
 
@@ -343,50 +356,34 @@
         const d = PLANET_DATA[lvl];
         ctx.save(); ctx.translate(x, y);
         
-        // Glow
         const glow = ctx.createRadialGradient(0, 0, d.r, 0, 0, d.r * 1.6);
         glow.addColorStop(0, d.glow); glow.addColorStop(1, 'transparent');
         ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, d.r * 1.6, 0, Math.PI*2); ctx.fill();
         
         ctx.rotate(angle);
         
-        if (d.star) {
-            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(0,0,d.r,0,Math.PI*2); ctx.fill();
-            const grad = ctx.createRadialGradient(0,0,0,0,0,d.r);
-            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#e0f2fe');
-            ctx.fillStyle = grad; ctx.fill();
-        } else if (d.sun) {
-            const grad = ctx.createRadialGradient(-d.r/4, -d.r/4, 0, 0, 0, d.r);
-            grad.addColorStop(0, '#fff5cc'); grad.addColorStop(0.3, '#fbbf24'); grad.addColorStop(1, '#ea580c');
-            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, d.r, 0, Math.PI*2); ctx.fill();
-            ctx.globalAlpha = 0.4; ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.arc(0,0, d.r + Math.sin(Date.now()/150)*4, 0, Math.PI*2); ctx.stroke();
+        if (d.singularity) {
+            ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0,0,d.r,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
         } else {
             const grad = ctx.createRadialGradient(-d.r/3, -d.r/3, 0, 0, 0, d.r);
-            grad.addColorStop(0, '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000000');
+            grad.addColorStop(0, d.sun || d.star ? '#fff' : '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000');
             ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, d.r, 0, Math.PI*2); ctx.fill();
-            if (d.stripes) {
-                ctx.clip(); ctx.globalAlpha = 0.2; ctx.fillStyle = 'white';
-                ctx.fillRect(-d.r, -d.r/3, d.r*2, d.r/5); ctx.fillRect(-d.r, d.r/4, d.r*2, d.r/8);
-            }
         }
-        
+
+        if (d.stripes) {
+            ctx.clip(); ctx.globalAlpha = 0.2; ctx.fillStyle = 'white';
+            ctx.fillRect(-d.r, -d.r/3, d.r*2, d.r/5); ctx.fillRect(-d.r, d.r/4, d.r*2, d.r/8);
+        }
         if (d.rings) {
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = d.r/8;
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.ellipse(0, 0, d.r*1.8, d.r*0.5, 0, 0, Math.PI*2); ctx.stroke();
         }
+        if (d.sun) {
+            ctx.globalAlpha = 0.4; ctx.strokeStyle = d.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(0,0, d.r + Math.sin(Date.now()/150)*4, 0, Math.PI*2); ctx.stroke();
+        }
         ctx.restore();
-    }
-
-    function gameOver() {
-        if (isGameOver) return; isGameOver = true;
-        let stats = JSON.parse(localStorage.getItem('sn_stats') || '{"merges":0,"high":0}');
-        stats.merges += score / 100; // Proxy for merges
-        localStorage.setItem('sn_stats', JSON.stringify(stats));
-        let lb = JSON.parse(localStorage.getItem('sn_lb') || '[]');
-        lb.push(score); lb.sort((a,b)=>b-a);
-        localStorage.setItem('sn_lb', JSON.stringify(lb.slice(0,5)));
-        location.reload();
     }
 
     initData();
@@ -394,8 +391,14 @@
     window.addEventListener('pointerup', e => {
         if (!gameStarted || isPaused || Date.now() - lastDropTime < 600) return;
         if (e.target.closest('.icon-btn, .btn, #gravity-ui')) return;
+        
+        if (comet && Vector.magnitude(Vector.sub({x: comet.x, y: comet.y}, {x: e.clientX, y: e.clientY})) < 60) {
+            gravityCharge = CHARGE_TIME; comet = null; return;
+        }
+
         spawn(currentX, isFlipped ? height - 100 : 100, nextLevel);
         nextLevel = Math.floor(Math.random() * 3);
+        updatePreview();
         lastDropTime = Date.now();
     });
 </script>
