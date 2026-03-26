@@ -4,7 +4,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Infinity v4.5</title>
+    <title>Supernova: Infinity v4.6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.08); }
@@ -99,6 +99,8 @@
 <script>
     const { Engine, Render, Runner, Bodies, Composite, Events, Body, Vector } = Matter;
     const engine = Engine.create();
+    engine.positionIterations = 10; // Stability increase
+    
     const width = window.innerWidth, height = window.innerHeight;
     
     const render = Render.create({ 
@@ -201,6 +203,40 @@
         Composite.add(engine.world, b);
     }
 
+    function performMerge(a, b) {
+        if (a.plugin.merged || b.plugin.merged) return;
+        a.plugin.merged = b.plugin.merged = true;
+        
+        const nl = a.plugin.lvl + 1;
+        const mid = Vector.div(Vector.add(a.position, b.position), 2);
+        
+        comboCount = (Date.now() - lastMergeTime < 1500) ? comboCount + 1 : 1;
+        lastMergeTime = Date.now();
+
+        if(comboCount > 1) {
+            const pop = document.getElementById('combo-popup');
+            pop.innerText = "COMBO x" + comboCount; pop.style.opacity = 1;
+            setTimeout(() => pop.style.opacity = 0, 800);
+        }
+
+        createExplosion(mid.x, mid.y, PLANET_DATA[a.plugin.lvl].color);
+        const addedScore = (nl * 100 * comboCount);
+        spawnFloatingText(mid.x, mid.y, `+${addedScore}`, nl > 4 ? '#fbbf24' : '#fff');
+        
+        Composite.remove(engine.world, [a, b]);
+        if (nl < 10) spawn(mid.x, mid.y, nl);
+        if (nl > 3) triggerShake();
+        
+        score += addedScore;
+        document.getElementById('score-label').innerText = score;
+
+        if (nl > 5 && Math.random() < 0.12) {
+            blackHoleActive = true; 
+            document.getElementById('event-banner').style.display = 'block';
+            setTimeout(() => { blackHoleActive = false; document.getElementById('event-banner').style.display = 'none'; }, 5000);
+        }
+    }
+
     function updatePreview() {
         const vis = document.getElementById('next-vis');
         const p = PLANET_DATA[nextLevel];
@@ -245,9 +281,17 @@
                 const bB = bodies[j];
                 if (bA.plugin.lvl === bB.plugin.lvl && !bA.plugin.merged && !bB.plugin.merged) {
                     const dist = Vector.magnitude(Vector.sub(bA.position, bB.position));
+                    
+                    // MAGNETIC PULL
                     if (dist < 250) {
                         const force = Vector.mult(Vector.normalise(Vector.sub(bB.position, bA.position)), 0.0005 * bA.mass);
                         Body.applyForce(bA, bA.position, force);
+                    }
+                    
+                    // PROXIMITY SAFETY MERGE (FIX FOR VIDEO ISSUE)
+                    const minDist = PLANET_DATA[bA.plugin.lvl].r * 2;
+                    if (dist < minDist + 2) { 
+                        performMerge(bA, bB);
                     }
                 }
             }
@@ -269,41 +313,11 @@
         });
     });
 
-    Events.on(engine, 'collisionActive', (e) => {
+    Events.on(engine, 'collisionStart', (e) => {
         e.pairs.forEach(p => {
             const { bodyA: a, bodyB: b } = p;
-            if (a.plugin?.lvl !== undefined && a.plugin.lvl === b.plugin?.lvl && !a.plugin.merged && !b.plugin.merged) {
-                a.plugin.merged = b.plugin.merged = true;
-                const nl = a.plugin.lvl + 1;
-                const mid = Vector.div(Vector.add(a.position, b.position), 2);
-                
-                comboCount = (Date.now() - lastMergeTime < 1500) ? comboCount + 1 : 1;
-                lastMergeTime = Date.now();
-
-                if(comboCount > 1) {
-                    const pop = document.getElementById('combo-popup');
-                    pop.innerText = "COMBO x" + comboCount; pop.style.opacity = 1;
-                    setTimeout(() => pop.style.opacity = 0, 800);
-                }
-
-                createExplosion(mid.x, mid.y, PLANET_DATA[a.plugin.lvl].color);
-                
-                // ADD FLOATING SCORE
-                const addedScore = (nl * 100 * comboCount);
-                spawnFloatingText(mid.x, mid.y, `+${addedScore}`, nl > 4 ? '#fbbf24' : '#fff');
-                
-                Composite.remove(engine.world, [a, b]);
-                if (nl < 10) spawn(mid.x, mid.y, nl);
-                if (nl > 3) triggerShake();
-                
-                score += addedScore;
-                document.getElementById('score-label').innerText = score;
-
-                if (nl > 5 && Math.random() < 0.12) {
-                    blackHoleActive = true; 
-                    document.getElementById('event-banner').style.display = 'block';
-                    setTimeout(() => { blackHoleActive = false; document.getElementById('event-banner').style.display = 'none'; }, 5000);
-                }
+            if (a.plugin?.lvl !== undefined && a.plugin.lvl === b.plugin?.lvl) {
+                performMerge(a, b);
             }
         });
     });
@@ -322,7 +336,7 @@
         ctx.setLineDash([8, 12]); ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(currentX, 0); ctx.lineTo(currentX, height); ctx.stroke(); ctx.setLineDash([]);
 
-        // COMET (20% LARGER)
+        // COMET
         if (comet) {
             comet.x += comet.vx; comet.y += comet.vy;
             ctx.fillStyle = '#fff'; ctx.shadowBlur = 20; ctx.shadowColor = 'cyan';
@@ -333,7 +347,7 @@
             comet = { x: -50, y: 200 + Math.random()*300, vx: 7, vy: (Math.random()-0.5)*2 };
         }
 
-        // FLOATING TEXT ANIMATION
+        // FLOATING TEXT
         floatingTexts = floatingTexts.filter(t => t.life > 0);
         floatingTexts.forEach(t => {
             t.y += t.vy; t.life -= 0.02;
@@ -341,6 +355,7 @@
             ctx.textAlign = 'center'; ctx.fillText(t.text, t.x, t.y);
         });
 
+        // PARTICLES
         particles = particles.filter(p => p.life > 0);
         particles.forEach(p => {
             p.x += p.vx; p.y += p.vy; p.life -= 0.02;
@@ -375,7 +390,6 @@
         ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, d.r * 1.6, 0, Math.PI*2); ctx.fill();
         
         ctx.rotate(angle);
-        
         if (lvl < 4) {
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.arc(0,0,d.r,0,Math.PI*2); ctx.stroke();
