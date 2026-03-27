@@ -3,19 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Infinity v4.15</title>
+    <title>Supernova: Infinity v4.20 - Expanded</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.08); }
         body { margin: 0; overflow: hidden; background: #010206; font-family: 'Segoe UI', system-ui, sans-serif; touch-action: none; color: white; user-select: none; }
         
-        #nebula { position: fixed; inset: 0; background: radial-gradient(circle at 50% 50%, #111827 0%, #010206 100%); z-index: -2; }
+        #nebula { position: fixed; inset: 0; background: radial-gradient(circle at 50% 50%, #111827 0%, #010206 100%); z-index: -2; transition: background 2s ease; }
         #stars-parallax { position: fixed; inset: -100px; background-image: radial-gradient(white 1px, transparent 1px); background-size: 100px 100px; opacity: 0.2; z-index: -1; pointer-events: none; }
         
         #ui-layer { position: absolute; inset: 0; z-index: 1000; pointer-events: none; }
         #top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; align-items: center; }
         .icon-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 50%; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
-        #score-label { flex-grow: 1; text-align: center; font-size: 2.8em; font-weight: 900; text-shadow: 0 0 20px var(--accent); margin: 0; transition: transform 0.1s; }
+        
+        #score-container { flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center; }
+        #score-label { font-size: 2.8em; font-weight: 900; text-shadow: 0 0 20px var(--accent); margin: 0; transition: transform 0.1s; z-index: 2; }
+        #score-ring { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 4px solid rgba(56, 189, 248, 0.1); border-top-color: var(--accent); transform: rotate(-90deg); transition: 0.5s; }
         
         #preview-box { position: fixed; top: 85px; right: 20px; width: 60px; height: 60px; background: var(--glass); border: 1px solid rgba(255,255,255,0.15); border-radius: 15px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         #next-vis { border-radius: 50%; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -40,11 +43,10 @@
         .stat-box { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; font-size: 0.75em; color: #94a3b8; text-transform: uppercase; }
         .stat-box b { display: block; font-size: 1.3em; color: var(--accent); margin-top: 4px; }
         
-        /* New Discovery UI */
         .discovery-track { display: flex; overflow-x: auto; gap: 15px; padding: 10px 5px; margin: 10px 0; scrollbar-width: none; pointer-events: auto; }
         .discovery-track::-webkit-scrollbar { display: none; }
-        .planet-slot { flex: 0 0 70px; display: flex; flex-direction: column; align-items: center; font-size: 0.6em; font-weight: bold; color: #94a3b8; }
-        .planet-slot canvas { background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 5px; width: 60px; height: 60px; }
+        .planet-slot { flex: 0 0 80px; display: flex; flex-direction: column; align-items: center; font-size: 0.65em; font-weight: bold; color: #94a3b8; }
+        .planet-slot canvas { background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 5px; width: 70px; height: 70px; border: 1px solid rgba(255,255,255,0.05); }
 
         .shop-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 14px; margin-bottom: 8px; text-align: left; pointer-events: auto; }
         .shop-btn { background: var(--gold); color: #000; border: none; padding: 10px 14px; border-radius: 10px; font-weight: 900; font-size: 0.85em; cursor: pointer; pointer-events: auto; min-width: 80px; }
@@ -67,7 +69,10 @@
     <div id="ui-layer">
         <div id="top-bar">
             <button class="icon-btn" onclick="togglePause()">⚙️</button>
-            <div id="score-label">0</div>
+            <div id="score-container">
+                <div id="score-ring"></div>
+                <div id="score-label">0</div>
+            </div>
         </div>
         <div id="preview-box"><div id="next-vis"></div></div>
         <div id="gravity-ui" onclick="flipGravity()">
@@ -142,7 +147,7 @@
     ];
 
     function loadStats() {
-        const data = JSON.parse(localStorage.getItem('sn_data_v3') || '{"best":0,"merges":0,"dust":0,"discovered":2}');
+        const data = JSON.parse(localStorage.getItem('sn_data_v4') || '{"best":0,"merges":0,"dust":0,"discovered":2}');
         document.getElementById('best-score-val').innerText = data.best.toLocaleString();
         document.getElementById('total-merges-val').innerText = data.merges.toLocaleString();
         document.getElementById('dust-val').innerText = (data.dust + sessionDust).toLocaleString();
@@ -159,7 +164,7 @@
         let data = loadStats();
         if (lvl > data.discovered) {
             data.discovered = lvl;
-            localStorage.setItem('sn_data_v3', JSON.stringify(data));
+            localStorage.setItem('sn_data_v4', JSON.stringify(data));
         }
     }
 
@@ -171,7 +176,7 @@
             sessionDust = 0;
             data.merges += comboCount; 
         }
-        localStorage.setItem('sn_data_v3', JSON.stringify(data));
+        localStorage.setItem('sn_data_v4', JSON.stringify(data));
         loadStats();
     }
 
@@ -186,7 +191,7 @@
             sessionDust = 0;
             data.dust -= diff;
         }
-        localStorage.setItem('sn_data_v3', JSON.stringify(data));
+        localStorage.setItem('sn_data_v4', JSON.stringify(data));
         
         const flash = document.getElementById('nuke-flash');
         flash.style.opacity = '1';
@@ -220,7 +225,7 @@
     function startGame() {
         if(engine) { Composite.clear(engine.world); Engine.clear(engine); }
         document.getElementById('home-screen').style.display = 'none';
-        if(!engine) { engine = Engine.create(); engine.positionIterations = 10; }
+        if(!engine) { engine = Engine.create(); engine.positionIterations = 12; }
         if(!render) {
             render = Render.create({ 
                 element: document.getElementById('game-canvas-container'), 
@@ -233,10 +238,10 @@
         runner = Runner.create(); Runner.run(runner, engine);
         
         Composite.add(engine.world, [
-            Bodies.rectangle(width/2, height+35, width, 70, { isStatic: true }),
-            Bodies.rectangle(-15, height/2, 30, height, { isStatic: true }),
-            Bodies.rectangle(width+15, height/2, 30, height, { isStatic: true }),
-            Bodies.rectangle(width/2, -35, width, 70, { isStatic: true })
+            Bodies.rectangle(width/2, height+35, width, 70, { isStatic: true, friction: 0.5 }),
+            Bodies.rectangle(-15, height/2, 30, height, { isStatic: true, friction: 0.5 }),
+            Bodies.rectangle(width+15, height/2, 30, height, { isStatic: true, friction: 0.5 }),
+            Bodies.rectangle(width/2, -35, width, 70, { isStatic: true, friction: 0.5 })
         ]);
 
         score = 0; sessionDust = 0; isFlipped = false;
@@ -255,7 +260,9 @@
         Events.on(engine, 'collisionStart', (e) => {
             e.pairs.forEach(p => {
                 const { bodyA: a, bodyB: b } = p;
-                if (a.plugin?.lvl !== undefined && a.plugin.lvl === b.plugin?.lvl) performMerge(a, b);
+                if (a.plugin?.lvl !== undefined && a.plugin.lvl === b.plugin?.lvl) {
+                    performMerge(a, b);
+                }
             });
         });
 
@@ -264,6 +271,10 @@
             const ctx = render.context;
             const limitY = isFlipped ? height - 160 : 160;
             let danger = false;
+
+            // Background color shifting logic
+            const hue = (score / 500) % 360;
+            document.getElementById('nebula').style.background = `radial-gradient(circle at 50% 50%, hsla(${hue}, 40%, 10%, 1) 0%, #010206 100%)`;
 
             ctx.save();
             ctx.setLineDash([4, 6]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
@@ -276,6 +287,17 @@
 
             ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
             ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke();
+
+            // Magnet Effect logic (Feature 2)
+            if (comboCount >= 5) {
+                const center = { x: width/2, y: height/2 };
+                Composite.allBodies(engine.world).forEach(b => {
+                    if(!b.isStatic) {
+                        const force = Vector.mult(Vector.normalise(Vector.sub(center, b.position)), 0.0005 * b.mass);
+                        Body.applyForce(b, b.position, force);
+                    }
+                });
+            }
 
             if (comet) {
                 comet.x += comet.vx; comet.y += comet.vy;
@@ -314,8 +336,9 @@
     function performMerge(a, b) {
         if (a.plugin.merged || b.plugin.merged) return;
         a.plugin.merged = b.plugin.merged = true;
+        
         const nl = a.plugin.lvl + 1;
-        const mid = Vector.div(Vector.add(a.position, b.position), 2);
+        const mid = { x: (a.position.x + b.position.x)/2, y: (a.position.y + b.position.y)/2 };
         
         const now = Date.now();
         comboCount = (now - lastMergeTime < 1500) ? comboCount + 1 : 1;
@@ -326,16 +349,25 @@
             pop.innerText = "CHAIN x" + comboCount; pop.style.opacity = 1;
             pop.style.transform = `translateX(-50%) scale(${1 + comboCount*0.1})`;
             setTimeout(() => pop.style.opacity = 0, 800);
-            triggerShake(comboCount * 2);
         }
+        
+        // Non-linear shake (Feature 4)
+        triggerShake(nl * 2.5 * (comboCount * 0.5));
 
-        updateDiscovery(nl); // Update discovery tracking
+        updateDiscovery(nl);
         createExplosion(mid.x, mid.y, PLANET_DATA[a.plugin.lvl].color);
+        
         score += (nl * 100 * comboCount);
         sessionDust += Math.floor(nl * 1.5 * (comboCount > 3 ? 2 : 1));
         
+        // UI updates
         document.getElementById('score-label').innerText = score.toLocaleString();
         document.getElementById('score-label').style.transform = 'scale(1.2)';
+        
+        // Progress Ring (Feature 5)
+        const progress = (nl / PLANET_DATA.length) * 360;
+        document.getElementById('score-ring').style.strokeDasharray = `${progress}, 1000`;
+        
         const hud = document.getElementById('stardust-hud');
         hud.style.transform = 'scale(1.1)';
         loadStats();
@@ -347,12 +379,14 @@
         
         Composite.remove(engine.world, [a, b]);
         if (nl < PLANET_DATA.length) spawn(mid.x, mid.y, nl);
-        if (nl > 3) triggerShake(5);
     }
 
     function spawn(x, y, lvl) {
         const b = Bodies.circle(x, y, PLANET_DATA[lvl].r, { 
-            restitution: 0.3, friction: 0.1, timestamp: Date.now(), 
+            restitution: 0.3, 
+            friction: 0.1, 
+            timestamp: Date.now(), 
+            torque: (Math.random() - 0.5) * 0.1, // Added rotation (Feature 1)
             plugin: { lvl, merged: false, warn: 0 } 
         });
         Composite.add(engine.world, b);
@@ -366,7 +400,7 @@
 
     function triggerShake(amt) {
         const el = document.getElementById('game-canvas-container');
-        const intensity = Math.min(amt, 20);
+        const intensity = Math.min(amt, 30);
         el.style.transform = `translate(${(Math.random()-0.5)*intensity}px, ${(Math.random()-0.5)*intensity}px)`;
         setTimeout(() => el.style.transform = 'translate(0,0)', 80);
     }
@@ -388,31 +422,29 @@
             const slot = document.createElement('div');
             slot.className = 'planet-slot';
             const canvas = document.createElement('canvas');
-            canvas.width = 120; canvas.height = 120;
+            canvas.width = 140; canvas.height = 140; 
             const ctx = canvas.getContext('2d');
             
             const isDiscovered = index <= data.discovered;
             if (isDiscovered) {
-                // Render Actual Planet
-                const scale = 50 / p.r;
-                ctx.translate(60, 60);
+                ctx.save();
+                ctx.translate(70, 70);
+                const scale = 55 / p.r;
                 ctx.scale(scale, scale);
-                drawPlanet(ctx, 0, 0, index, 0.5);
+                drawPlanet(ctx, 0, 0, index, 0.5); // Fixed offset issue
+                ctx.restore();
                 slot.innerHTML = canvas.outerHTML + `<span>${p.name.toUpperCase()}</span>`;
             } else {
-                // Render Fog of Stars
                 ctx.save();
-                ctx.translate(60, 60);
+                ctx.translate(70, 70);
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 45);
-                grad.addColorStop(0, 'rgba(255,255,255,0.8)');
-                grad.addColorStop(0.5, 'rgba(255,255,255,0.2)');
+                grad.addColorStop(0, 'rgba(255,255,255,0.2)');
                 grad.addColorStop(1, 'transparent');
                 ctx.fillStyle = grad;
-                ctx.filter = 'blur(4px)';
                 ctx.beginPath(); ctx.arc(0, 0, 45, 0, Math.PI*2); ctx.fill();
                 ctx.restore();
-                ctx.fillStyle = "white"; ctx.font = "bold 40px Arial"; ctx.textAlign = "center";
-                ctx.fillText("?", 60, 75);
+                ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.font = "bold 40px Arial"; ctx.textAlign = "center";
+                ctx.fillText("?", 70, 85);
                 slot.innerHTML = canvas.outerHTML + `<span>UNKNOWN</span>`;
             }
             container.appendChild(slot);
@@ -440,7 +472,7 @@
             isFlipped = !isFlipped;
             engine.gravity.y *= -1;
             gravityCharge = 0;
-            triggerShake(20);
+            triggerShake(25);
             const flash = document.getElementById('nuke-flash');
             flash.style.opacity = '1';
             setTimeout(() => flash.style.opacity = '0', 200);
@@ -454,6 +486,7 @@
         glow.addColorStop(0, d.glow); glow.addColorStop(1, 'transparent');
         ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, d.r * 1.5, 0, Math.PI*2); ctx.fill();
         ctx.rotate(angle);
+        
         if (d.singularity) {
             ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0,0,d.r,0,Math.PI*2); ctx.fill();
             ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
@@ -462,6 +495,7 @@
             grad.addColorStop(0, d.sun || d.star ? '#fff' : '#ffffff88'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000');
             ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, d.r, 0, Math.PI*2); ctx.fill();
         }
+        
         if (d.stripes) {
             ctx.clip(); ctx.globalAlpha = 0.2; ctx.fillStyle = 'white';
             ctx.fillRect(-d.r, -d.r/3, d.r*2, d.r*0.2); ctx.fillRect(-d.r, d.r/4, d.r*2, d.r*0.1);
@@ -478,9 +512,11 @@
     window.addEventListener('pointerup', e => {
         if (!gameStarted || isPaused || Date.now() - lastDropTime < 600) return;
         if (e.target.closest('.icon-btn, .btn, .shop-btn, #gravity-ui, .discovery-track')) return;
+        
         if (comet && Vector.magnitude(Vector.sub({x: comet.x, y: comet.y}, {x: e.clientX, y: e.clientY})) < 80) {
-            gravityCharge = CHARGE_TIME; comet = null; triggerShake(10); return;
+            gravityCharge = CHARGE_TIME; comet = null; triggerShake(15); return;
         }
+        
         spawn(currentX, isFlipped ? height - 100 : 100, nextLevel);
         nextLevel = Math.floor(Math.random() * 3);
         updatePreview();
