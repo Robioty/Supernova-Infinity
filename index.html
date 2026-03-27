@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Infinity v4.13</title>
+    <title>Supernova: Infinity v4.14</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --pink: #f472b6; --glass: rgba(255, 255, 255, 0.08); }
@@ -20,7 +20,7 @@
         #preview-box { position: fixed; top: 85px; right: 20px; width: 60px; height: 60px; background: var(--glass); border: 1px solid rgba(255,255,255,0.15); border-radius: 15px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         #next-vis { border-radius: 50%; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        #stardust-hud { position: fixed; top: 85px; left: 20px; background: var(--glass); padding: 8px 15px; border-radius: 20px; color: var(--gold); font-weight: 900; border: 1px solid rgba(251, 191, 36, 0.3); backdrop-filter: blur(10px); pointer-events: none; }
+        #stardust-hud { position: fixed; top: 85px; left: 20px; background: var(--glass); padding: 8px 15px; border-radius: 20px; color: var(--gold); font-weight: 900; border: 1px solid rgba(251, 191, 36, 0.3); backdrop-filter: blur(10px); pointer-events: none; transition: transform 0.1s; }
 
         #gravity-ui { position: fixed; right: 25px; bottom: 35px; pointer-events: auto; transition: transform 0.2s; }
         #gravity-ui:active { transform: scale(0.9); }
@@ -135,7 +135,10 @@
         const data = JSON.parse(localStorage.getItem('sn_data_v2') || '{"best":0,"merges":0,"dust":0}');
         document.getElementById('best-score-val').innerText = data.best.toLocaleString();
         document.getElementById('total-merges-val').innerText = data.merges.toLocaleString();
-        document.getElementById('dust-val').innerText = (data.dust + sessionDust).toLocaleString();
+        
+        // Fix: Real-time update logic
+        const totalDust = data.dust + sessionDust;
+        document.getElementById('dust-val').innerText = totalDust.toLocaleString();
         
         let rank = "Recruit";
         if(data.best > 10000) rank = "Elite Pilot";
@@ -154,6 +157,7 @@
             data.merges += comboCount; 
         }
         localStorage.setItem('sn_data_v2', JSON.stringify(data));
+        loadStats(); // Refresh display
     }
 
     function buyPowerUp(cost, maxLvl) {
@@ -180,6 +184,7 @@
             }
         });
         triggerShake(15);
+        loadStats(); // Real-time HUD refresh after purchase
         togglePause();
     }
 
@@ -226,6 +231,7 @@
         gameStarted = true;
         nextLevel = Math.floor(Math.random() * 3);
         updatePreview();
+        loadStats(); // Sync UI
         initEvents();
     }
 
@@ -244,24 +250,18 @@
             const limitY = isFlipped ? height - 160 : 160;
             let danger = false;
 
-            // Targeting Beam - Maximum Visibility Priority
             ctx.save();
-            ctx.setLineDash([4, 6]); 
-            ctx.strokeStyle = '#38bdf8'; 
-            ctx.lineWidth = 3;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#38bdf8';
+            ctx.setLineDash([4, 6]); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
+            ctx.shadowBlur = 10; ctx.shadowColor = '#38bdf8';
             ctx.beginPath(); 
             ctx.moveTo(currentX, isFlipped ? height : 0);
             ctx.lineTo(currentX, isFlipped ? height - 140 : 140); 
             ctx.stroke();
             ctx.restore();
 
-            // Danger Line
             ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
             ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke();
 
-            // Comet Logic
             if (comet) {
                 comet.x += comet.vx; comet.y += comet.vy;
                 ctx.fillStyle = '#fff'; ctx.shadowBlur = 20; ctx.shadowColor = 'cyan';
@@ -303,7 +303,6 @@
         const nl = a.plugin.lvl + 1;
         const mid = Vector.div(Vector.add(a.position, b.position), 2);
         
-        // Chain Reaction Logic
         const now = Date.now();
         comboCount = (now - lastMergeTime < 1500) ? comboCount + 1 : 1;
         lastMergeTime = now;
@@ -317,13 +316,21 @@
         }
 
         createExplosion(mid.x, mid.y, PLANET_DATA[a.plugin.lvl].color);
-        const gain = (nl * 100 * comboCount);
-        score += gain;
+        score += (nl * 100 * comboCount);
         sessionDust += Math.floor(nl * 1.5 * (comboCount > 3 ? 2 : 1));
         
+        // Dynamic UI Updates
         document.getElementById('score-label').innerText = score.toLocaleString();
         document.getElementById('score-label').style.transform = 'scale(1.2)';
-        setTimeout(() => document.getElementById('score-label').style.transform = 'scale(1)', 100);
+        
+        const hud = document.getElementById('stardust-hud');
+        hud.style.transform = 'scale(1.1)';
+        loadStats(); // Forces real-time Stardust count update
+
+        setTimeout(() => {
+            document.getElementById('score-label').style.transform = 'scale(1)';
+            hud.style.transform = 'scale(1)';
+        }, 100);
         
         Composite.remove(engine.world, [a, b]);
         if (nl < PLANET_DATA.length) spawn(mid.x, mid.y, nl);
@@ -380,7 +387,6 @@
             engine.gravity.y *= -1;
             gravityCharge = 0;
             triggerShake(20);
-            // Visual Pulse
             const flash = document.getElementById('nuke-flash');
             flash.style.background = 'rgba(56, 189, 248, 0.2)';
             flash.style.opacity = '1';
