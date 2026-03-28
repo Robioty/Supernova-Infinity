@@ -1,270 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Supernova: Infinity v5.4</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-
-<style>
-/* ORIGINAL STYLES PRESERVED */
-:root { --accent:#38bdf8; --gold:#fbbf24; --danger:#ef4444; --glass:rgba(255,255,255,0.08);}
-body { margin:0; overflow:hidden; background:#010206; font-family:'Segoe UI'; color:white; touch-action:none;}
-#nebula { position:fixed; inset:0; background:radial-gradient(circle at 50% 50%, #111827 0%, #010206 100%); z-index:-2;}
-#score-label { position:fixed; top:20px; left:50%; transform:translateX(-50%); font-size:2.8em; font-weight:900;}
-#ghost { position:absolute; border:2px dashed rgba(255,255,255,0.25); border-radius:50%; pointer-events:none; z-index:999;}
-
-.overlay { position:fixed; inset:0; background:rgba(1,4,9,0.98); z-index:2000; display:flex; flex-direction:column; align-items:center; justify-content:center;}
-.btn { background:var(--accent); padding:14px; border:none; border-radius:12px; font-weight:900; color:white; margin:6px;}
-.shop-row { display:flex; justify-content:space-between; width:260px; margin:6px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Supernova: Infinity v4.7</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        :root { --accent: #38bdf8; --gold: #fbbf24; --danger: #ef4444; --glass: rgba(255, 255, 255, 0.08); }
+        body { margin: 0; overflow: hidden; background: #010206; font-family: 'Segoe UI', sans-serif; color: white; user-select: none; touch-action: none; }
+        #nebula { position: fixed; inset: 0; background: radial-gradient(circle at 50% 50%, #111827 0%, #010206 100%); z-index: -2; transition: 2s; }
+        #ui-layer { position: absolute; inset: 0; z-index: 1000; pointer-events: none; }
+        #top-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .header-main { display: flex; width: 100%; align-items: center; justify-content: space-between; }
+        .icon-btn { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 50%; cursor: pointer; pointer-events: auto; backdrop-filter: blur(10px); }
+        #score-label { font-size: 2.8em; font-weight: 900; text-shadow: 0 0 20px var(--accent); }
+        #stardust-hud { position: fixed; top: 85px; left: 20px; background: var(--glass); padding: 8px 15px; border-radius: 20px; color: var(--gold); font-weight: 900; border: 1px solid rgba(251, 191, 36, 0.3); backdrop-filter: blur(10px); }
+        #right-hud { position: fixed; right: 20px; top: 85px; display: flex; flex-direction: column; gap: 10px; }
+        #preview-box { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; backdrop-filter: blur(10px); }
+        .prev-label { font-size: 0.6em; font-weight: 900; color: var(--accent); opacity: 0.7; }
+        #evo-bar { display: flex; gap: 6px; background: var(--glass); padding: 6px 12px; border-radius: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .evo-dot { width: 10px; height: 10px; border-radius: 50%; opacity: 0.2; transition: 0.3s; }
+        .evo-dot.active { opacity: 1; box-shadow: 0 0 8px currentColor; }
+        #gravity-ui { position: fixed; right: 22px; bottom: 35px; pointer-events: auto; }
+        #g-ring { width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(251, 191, 36, 0.2); display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--gold); background: rgba(0,0,0,0.6); }
+        #g-progress { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--gold); clip-path: inset(100% 0 0 0); transition: clip-path 0.1s linear; }
+        #combo-popup { position: fixed; top: 25%; left: 50%; transform: translateX(-50%); font-size: 2.5em; color: var(--gold); font-weight: 900; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1100; }
+        #danger-alert { position: fixed; left: 50%; transform: translateX(-50%); color: var(--danger); font-size: 2em; font-weight: 900; display: none; animation: flash 0.5s infinite alternate; }
+        .overlay { position: fixed; inset: 0; background: rgba(1, 4, 9, 0.98); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; }
+        .menu-card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); padding: 25px; border-radius: 28px; width: 90%; max-width: 380px; backdrop-filter: blur(25px); text-align: center; }
+        .btn { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 10px; pointer-events: auto; }
+        .shop-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 14px; margin-bottom: 8px; pointer-events: auto; }
+        .shop-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 8px; font-weight: 900; cursor: pointer; }
+        .discovery-track { display: flex; overflow-x: auto; gap: 15px; padding: 10px 0; margin-bottom: 15px; pointer-events: auto; scrollbar-width: none; }
+        .planet-slot { flex: 0 0 65px; display: flex; flex-direction: column; align-items: center; font-size: 0.6em; }
+        .planet-slot canvas { background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 4px; width: 55px; height: 55px; }
+        @keyframes flash { from { opacity: 0.2; } to { opacity: 1; } }
+    </style>
 </head>
-
 <body>
+    <div id="nebula"></div>
+    <div id="stardust-hud">✨ <span id="dust-val">0</span></div>
+    <div id="combo-popup">CHAIN x2</div>
+    <div id="ui-layer">
+        <div id="top-bar">
+            <div class="header-main">
+                <button class="icon-btn" onclick="togglePause()">⚙️</button>
+                <div id="score-label">0</div>
+                <div style="width:40px"></div> 
+            </div>
+            <div id="evo-bar"></div>
+        </div>
+        <div id="right-hud">
+            <div id="preview-box">
+                <span class="prev-label">HOLD</span><div id="next-vis"></div>
+                <hr style="width:100%; border:0; border-top:1px solid rgba(255,255,255,0.1); margin:5px 0;">
+                <span class="prev-label">NEXT</span><div id="after-next-vis"></div>
+            </div>
+        </div>
+        <div id="gravity-ui" onclick="flipGravity()"><div id="g-ring">G<div id="g-progress"></div></div></div>
+        <div id="danger-alert">⚠️ DANGER ⚠️</div>
+    </div>
 
-<div id="nebula"></div>
-<div id="score-label">0</div>
-<div id="ghost"></div>
+    <div id="home-screen" class="overlay">
+        <h1 style="font-size: 3em; color: var(--accent); margin-bottom: 20px;">SUPERNOVA</h1>
+        <div class="menu-card">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:12px;">BEST<br><b id="best-score-val" style="color:var(--accent)">0</b></div>
+                <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:12px;">RANK<br><b id="rank-val" style="color:var(--accent)">Recruit</b></div>
+            </div>
+            <button class="btn" onclick="startGame()">LAUNCH MISSION</button>
+        </div>
+    </div>
 
-<div id="home" class="overlay">
-<h1>SUPERNOVA</h1>
-<button class="btn" onclick="startGame()">LAUNCH</button>
-
-<h3>UPGRADES</h3>
-<div class="shop-row"><span>Score Boost</span><button class="btn" onclick="buyUpgrade('score')">✨</button></div>
-<div class="shop-row"><span>Gravity Recharge</span><button class="btn" onclick="buyUpgrade('gravity')">✨</button></div>
-<div class="shop-row"><span>Combo Window</span><button class="btn" onclick="buyUpgrade('combo')">✨</button></div>
-</div>
-
-<div id="revive" class="overlay" style="display:none">
-<h2>REVIVE?</h2>
-<button class="btn" onclick="revive()">✨ 100</button>
-<button class="btn" onclick="endGame()">END</button>
-</div>
+    <div id="pause-menu" class="overlay" style="display:none">
+        <div class="menu-card">
+            <h3 style="margin-top:0">LOG & ARMORY</h3>
+            <div class="discovery-track" id="discovery-log"></div>
+            <div class="shop-row"><span><b>NUKE</b> (Lvl 0-1)</span><button class="shop-btn" onclick="buyPowerUp(250, 1)">✨ 250</button></div>
+            <div class="shop-row"><span><b>COLLAPSE</b> (Lvl 2-3)</span><button class="shop-btn" onclick="buyPowerUp(600, 3)">✨ 600</button></div>
+            <button class="btn" onclick="togglePause()">RESUME</button>
+            <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="restartMission()">🔄 RESTART</button>
+            <button class="btn" style="background:var(--danger)" onclick="gameOver()">ABANDON</button>
+        </div>
+    </div>
 
 <script>
-const {Engine,Render,Runner,Bodies,Composite,Events,Body} = Matter;
+    const { Engine, Render, Runner, Bodies, Composite, Events, Vector } = Matter;
+    let engine, render, runner, audioCtx;
+    const width = window.innerWidth, height = window.innerHeight, CHARGE_TIME = 120000;
+    let score = 0, sessionDust = 0, gameStarted = false, isPaused = false, isFlipped = false;
+    let nextLevel = 0, afterNextLevel = 0, currentX = width/2, gravityCharge = 120000, lastDropTime = 0;
+    let particles = [], comboCount = 0, lastMergeTime = 0;
+    
+    const PLANET_DATA = [
+        { name: "Star", r: 16, color: '#ffffff', glow: 'rgba(255,255,255,0.4)', star: true },
+        { name: "Verda", r: 24, color: '#4ade80', glow: 'rgba(74,222,128,0.2)' },
+        { name: "Ares", r: 34, color: '#f87171', glow: 'rgba(248,113,113,0.2)' },
+        { name: "Solara", r: 45, color: '#fbbf24', stripes: true, glow: 'rgba(251,191,36,0.3)' },
+        { name: "Nebula", r: 59, color: '#818cf8', stripes: true, glow: 'rgba(129,140,248,0.3)' },
+        { name: "Saturn", r: 78, color: '#38bdf8', rings: true, glow: 'rgba(56,189,248,0.4)' },
+        { name: "Sun", r: 99, color: '#ffcc33', sun: true, glow: 'rgba(255,165,0,0.6)' },
+        { name: "Pulsar", r: 120, color: '#e879f9', stripes: true, glow: 'rgba(232,121,249,0.5)' },
+        { name: "Void", r: 145, color: '#000000', glow: 'rgba(255,255,255,0.3)', singularity: true },
+        { name: "Nexus", r: 180, color: '#f472b6', sun: true, glow: 'rgba(244,114,182,0.8)' }
+    ];
 
-let engine, render, runner;
-let activeBodies = [];
-let particles = [];
-
-let score = 0, sessionDust = 0;
-let dropCount = 0, reviveUsed = false, lastDropTime = 0;
-
-let currentX = innerWidth/2;
-const ghost = document.getElementById("ghost");
-
-const MAX_PARTICLES = 300;
-const MERGE_PULL = 0.0003;
-
-let upgrades = JSON.parse(localStorage.getItem("sn_upgrades")||'{"score":0,"gravity":0,"combo":0}');
-let stats = JSON.parse(localStorage.getItem("sn_stats")||'{"dust":0}');
-
-const PLANETS = [
- {r:16},{r:24},{r:34},{r:45},{r:59},{r:78},{r:99},{r:120}
-];
-
-let audioCtx;
-window.addEventListener("pointerdown",()=>{ if(!audioCtx) audioCtx = new AudioContext(); }, {once:true});
-
-function play(freq){
- if(!audioCtx) return;
- let o = audioCtx.createOscillator(), g = audioCtx.createGain();
- o.connect(g); g.connect(audioCtx.destination);
- o.frequency.value = freq; g.gain.value = 0.05;
- o.start(); o.stop(audioCtx.currentTime + 0.1);
-}
-
-function startGame(){
- if(engine){
-  Composite.clear(engine.world);
-  Engine.clear(engine);
- }
-
- document.getElementById("home").style.display = "none";
- document.getElementById("revive").style.display = "none";
-
- engine = Engine.create();
-
- render = Render.create({
-  element: document.body,
-  engine,
-  options: { width: innerWidth, height: innerHeight, wireframes: false, background: "transparent" }
- });
-
- Render.run(render);
-
- runner = Runner.create();
- Runner.run(runner, engine);
-
- Composite.add(engine.world, [
-  Bodies.rectangle(innerWidth/2, innerHeight+40, innerWidth, 80, {isStatic:true})
- ]);
-
- score = 0; sessionDust = 0; dropCount = 0; reviveUsed = false;
- activeBodies = [];
-
- // COLLISION
- Events.on(engine, "collisionStart", e=>{
-  e.pairs.forEach(p=>{
-   if(
-    p.bodyA !== p.bodyB &&
-    p.bodyA.plugin?.lvl === p.bodyB.plugin?.lvl &&
-    !p.bodyA.plugin.merged &&
-    !p.bodyB.plugin.merged
-   ){
-    merge(p.bodyA, p.bodyB);
-   }
-  });
- });
-
- // MERGE ASSIST
- Events.on(engine, "beforeUpdate", ()=>{
-  activeBodies.forEach(a=>{
-   activeBodies.forEach(b=>{
-    if(a!==b && a.plugin.lvl===b.plugin.lvl){
-     let dx=b.position.x-a.position.x;
-     let dy=b.position.y-a.position.y;
-     let d=Math.sqrt(dx*dx+dy*dy);
-     if(d<120){
-      Body.applyForce(a,a.position,{x:dx*MERGE_PULL,y:dy*MERGE_PULL});
-     }
+    function playSound(type) {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+        if(type==='drop'){ osc.frequency.setValueAtTime(440,now); osc.frequency.exponentialRampToValueAtTime(110,now+0.1); gain.gain.setValueAtTime(0.1,now); osc.start(); osc.stop(now+0.1); }
+        if(type==='merge'){ osc.type='square'; osc.frequency.setValueAtTime(220,now); osc.frequency.exponentialRampToValueAtTime(880,now+0.2); gain.gain.setValueAtTime(0.05,now); osc.start(); osc.stop(now+0.2); }
     }
-   });
-  });
- });
 
- // RENDER LOOP (YOUR STYLE PRESERVED)
- Events.on(render, "afterRender", ()=>{
-  const ctx = render.context;
+    function loadStats() {
+        const d = JSON.parse(localStorage.getItem('sn_v6') || '{"best":0,"dust":0,"discovered":2}');
+        document.getElementById('best-score-val').innerText = d.best.toLocaleString();
+        document.getElementById('dust-val').innerText = (d.dust + sessionDust).toLocaleString();
+        document.getElementById('rank-val').innerText = d.best > 50000 ? "Commander" : "Pilot";
+        return d;
+    }
 
-  // ghost
-  let r = PLANETS[0].r;
-  ctx.save();
-  ctx.setLineDash([6,6]);
-  ctx.strokeStyle = "rgba(255,255,255,0.25)";
-  ctx.beginPath();
-  ctx.arc(currentX, 100, r, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.restore();
+    function saveStats(fin=false) { 
+        let d=loadStats(); d.best=Math.max(d.best,score); 
+        if(fin){ d.dust+=sessionDust; sessionDust=0; } 
+        localStorage.setItem('sn_v6',JSON.stringify(d)); loadStats(); 
+    }
 
-  // particles
-  particles = particles.filter(p=>p.life>0);
-  particles.forEach(p=>{
-   p.x+=p.vx; p.y+=p.vy; p.life-=0.02;
-   ctx.globalAlpha = p.life;
-   ctx.fillStyle = "#fff";
-   ctx.fillRect(p.x, p.y, 2, 2);
-   ctx.globalAlpha = 1;
-  });
- });
+    function buyPowerUp(cost, maxLvl) {
+        let stats = loadStats();
+        let totalDust = stats.dust + sessionDust;
+        if (totalDust < cost) return alert("Not enough Stardust!");
+        if (sessionDust >= cost) sessionDust -= cost; 
+        else { stats.dust -= (cost - sessionDust); sessionDust = 0; }
+        localStorage.setItem('sn_v6', JSON.stringify(stats));
+        Composite.allBodies(engine.world).forEach(b => {
+            if (b.plugin?.lvl <= maxLvl) {
+                createExplosion(b.position.x, b.position.y, PLANET_DATA[b.plugin.lvl].color);
+                Composite.remove(engine.world, b);
+            }
+        });
+        togglePause(); loadStats();
+    }
 
-}
+    function startGame() {
+        if(engine) { Composite.clear(engine.world); Engine.clear(engine); }
+        document.getElementById('home-screen').style.display='none';
+        if(!engine) engine = Engine.create({ positionIterations: 10 });
+        if(!render) { render = Render.create({ element: document.body, engine, options: { width, height, wireframes: false, background: 'transparent' } }); Render.run(render); }
+        if(runner) Runner.stop(runner); runner = Runner.create(); Runner.run(runner, engine);
+        Composite.add(engine.world, [ Bodies.rectangle(width/2, height+30, width, 60, { isStatic: true }), Bodies.rectangle(-15, height/2, 30, height, { isStatic: true }), Bodies.rectangle(width+15, height/2, 30, height, { isStatic: true }), Bodies.rectangle(width/2, -30, width, 60, { isStatic: true }) ]);
+        score=0; sessionDust=0; isFlipped=false; engine.gravity.y=1; gameStarted=true;
+        nextLevel=Math.floor(Math.random()*3); afterNextLevel=Math.floor(Math.random()*3);
+        document.getElementById('evo-bar').innerHTML = PLANET_DATA.map(p => `<div class="evo-dot" style="background:${p.color}"></div>`).join('');
+        updatePreview(); loadStats(); initEvents();
+    }
 
-function spawn(x, lvl){
- const b = Bodies.circle(x, 100, PLANETS[lvl].r, {
-  restitution: 0.3,
-  plugin: { lvl, merged:false }
- });
- activeBodies.push(b);
- Composite.add(engine.world, b);
-}
+    function initEvents() {
+        Events.off(engine); Events.on(engine, 'collisionStart', (e) => { e.pairs.forEach(p => { if(p.bodyA.plugin?.lvl === p.bodyB.plugin?.lvl) performMerge(p.bodyA, p.bodyB); }); });
+        Events.on(render, 'afterRender', () => {
+            if (!gameStarted || isPaused) return;
+            const ctx = render.context, limitY = isFlipped ? height - 160 : 160; let danger = false;
+            ctx.save(); ctx.setLineDash([5, 8]); ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)'; ctx.beginPath();
+            ctx.moveTo(currentX, isFlipped ? height : 0); ctx.lineTo(currentX, isFlipped ? height - 120 : 120); ctx.stroke();
+            ctx.setLineDash([10, 10]); ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)'; ctx.beginPath(); ctx.moveTo(0, limitY); ctx.lineTo(width, limitY); ctx.stroke(); ctx.restore();
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.life-=0.02; ctx.save(); ctx.globalAlpha=p.life; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill(); ctx.restore(); });
+            Composite.allBodies(engine.world).forEach(b => { 
+                if (b.isStatic || b.plugin?.lvl === undefined) return;
+                drawPlanet(ctx, b.position.x, b.position.y, b.plugin.lvl, b.angle);
+                const crossing = isFlipped ? (b.position.y > limitY) : (b.position.y < limitY);
+                if (crossing && (Date.now() - b.timestamp > 2000)) { danger = true; if (!b.plugin.warn) b.plugin.warn = Date.now(); if (Date.now() - b.plugin.warn > 3500) gameOver(); } else b.plugin.warn = 0;
+            });
+            document.getElementById('danger-alert').style.display = danger ? 'block' : 'none';
+            document.getElementById('danger-alert').style.top = isFlipped ? '80%' : '20%';
+            if (gravityCharge < CHARGE_TIME) gravityCharge += 200; document.getElementById('g-progress').style.clipPath = `inset(${100 - (gravityCharge/CHARGE_TIME*100)}% 0 0 0)`;
+        });
+    }
 
-function removeBody(b){
- activeBodies = activeBodies.filter(x=>x!==b);
- Composite.remove(engine.world, b);
-}
+    function performMerge(a, b) {
+        if (a.plugin.merged || b.plugin.merged) return; a.plugin.merged = b.plugin.merged = true;
+        const nl = a.plugin.lvl + 1, mid = { x: (a.position.x+b.position.x)/2, y: (a.position.y+b.position.y)/2 };
+        
+        comboCount = (Date.now() - lastMergeTime < 1500) ? comboCount + 1 : 1;
+        lastMergeTime = Date.now();
+        if(comboCount > 1) {
+            const pop = document.getElementById('combo-popup');
+            pop.innerText = "CHAIN x" + comboCount; pop.style.opacity = 1;
+            setTimeout(() => pop.style.opacity = 0, 800);
+        }
 
-function merge(a,b){
- if(a.plugin.merged||b.plugin.merged) return;
+        playSound('merge'); createExplosion(mid.x, mid.y, PLANET_DATA[Math.min(nl, 9)].color);
+        score += (nl * 100 * comboCount); sessionDust += nl; 
+        document.getElementById('score-label').innerText = score.toLocaleString();
+        document.getElementById('dust-val').innerText = (loadStats().dust + sessionDust).toLocaleString();
+        const dots = document.querySelectorAll('.evo-dot'); if(dots[nl]) dots[nl].classList.add('active');
+        Composite.remove(engine.world, [a, b]); if (nl < PLANET_DATA.length) spawn(mid.x, mid.y, nl);
+        let d=loadStats(); if(nl > d.discovered) { d.discovered=nl; localStorage.setItem('sn_v6', JSON.stringify(d)); }
+    }
 
- a.plugin.merged = b.plugin.merged = true;
+    function spawn(x, y, lvl) { const b = Bodies.circle(x, y, PLANET_DATA[lvl].r, { restitution: 0.3, friction: 0.1, timestamp: Date.now(), plugin: { lvl, merged: false, warn: 0 } }); Composite.add(engine.world, b); }
+    function createExplosion(x, y, color) { for(let i=0; i<15; i++) particles.push({ x, y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, life: 1.0, color }); }
+    
+    function drawPlanet(ctx, x, y, lvl, angle) {
+        const d = PLANET_DATA[lvl]; ctx.save(); ctx.translate(x, y);
+        const glow = ctx.createRadialGradient(0,0, d.r, 0,0, d.r*1.5); glow.addColorStop(0, d.glow); glow.addColorStop(1, 'transparent'); ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0,0, d.r*1.5, 0, Math.PI*2); ctx.fill();
+        ctx.rotate(angle);
+        if (d.singularity) { ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(0,0, d.r, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke(); }
+        else {
+            const grad = ctx.createRadialGradient(-d.r/3, -d.r/3, 0, 0, 0, d.r);
+            grad.addColorStop(0, d.sun || d.star ? '#fff' : '#ffffffaa'); grad.addColorStop(0.3, d.color); grad.addColorStop(1, '#000');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0,0, d.r, 0, Math.PI*2); ctx.fill();
+        }
+        if (d.stripes) { ctx.globalAlpha=0.2; ctx.fillStyle='white'; ctx.fillRect(-d.r, -d.r/4, d.r*2, d.r/8); ctx.fillRect(-d.r, d.r/3, d.r*2, d.r/10); }
+        if (d.rings) { ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(0,0, d.r*1.6, d.r*0.4, 0, 0, Math.PI*2); ctx.stroke(); }
+        ctx.restore();
+    }
 
- let lvl = a.plugin.lvl + 1;
- let x = (a.position.x + b.position.x)/2;
+    function renderDiscoveryLog() {
+        const container = document.getElementById('discovery-log'); container.innerHTML = '';
+        const data = loadStats();
+        PLANET_DATA.forEach((p, i) => {
+            const slot = document.createElement('div'); slot.className = 'planet-slot';
+            const canvas = document.createElement('canvas'); canvas.width=55; canvas.height=55;
+            const ctx = canvas.getContext('2d');
+            if(i <= data.discovered) { ctx.save(); ctx.translate(27.5, 27.5); ctx.scale(20/p.r, 20/p.r); drawPlanet(ctx, 0,0, i, 0.5); ctx.restore(); }
+            else { ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.arc(27.5,27.5,15,0,Math.PI*2); ctx.fill(); }
+            slot.appendChild(canvas); slot.innerHTML += `<span>${i <= data.discovered ? p.name : '???'}</span>`;
+            container.appendChild(slot);
+        });
+    }
 
- removeBody(a); removeBody(b);
+    function updatePreview() { const v=document.getElementById('next-vis'), av=document.getElementById('after-next-vis'), p=PLANET_DATA[nextLevel], ap=PLANET_DATA[afterNextLevel]; v.style.background=p.color; v.style.width=v.style.height=(p.r*0.8)+'px'; av.style.background=ap.color; av.style.width=av.style.height=(ap.r*0.5)+'px'; }
+    function togglePause() { if(!gameStarted) return; isPaused = !isPaused; engine.enabled = !isPaused; document.getElementById('pause-menu').style.display = isPaused ? 'flex' : 'none'; if(isPaused) renderDiscoveryLog(); }
+    function flipGravity() { if (gravityCharge >= CHARGE_TIME) { isFlipped = !isFlipped; engine.gravity.y *= -1; gravityCharge = 0; playSound('flip'); }}
+    function restartMission() { saveStats(false); isPaused=false; document.getElementById('pause-menu').style.display='none'; startGame(); }
+    function gameOver() { saveStats(true); gameStarted=false; engine.enabled=false; document.getElementById('home-screen').style.display='flex'; loadStats(); }
 
- if(lvl < PLANETS.length) spawn(x, lvl);
-
- let mult = 1 + (upgrades.score * 0.1);
- score += lvl * 100 * mult;
- sessionDust += lvl;
-
- document.getElementById("score-label").innerText = Math.floor(score);
-
- createExplosion(x,100);
- play(800);
- screenShake();
-}
-
-function createExplosion(x,y){
- for(let i=0;i<12;i++){
-  if(particles.length<MAX_PARTICLES){
-   particles.push({x,y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:1});
-  }
- }
-}
-
-function screenShake(){
- document.body.style.transform="translate(3px,-3px)";
- setTimeout(()=>document.body.style.transform="",80);
-}
-
-function revive(){
- if(reviveUsed) return;
- if(sessionDust < 100) return alert("Not enough dust");
-
- sessionDust -= 100;
- reviveUsed = true;
-
- activeBodies.sort((a,b)=>a.position.y-b.position.y)
- .slice(0,3)
- .forEach(removeBody);
-
- document.getElementById("revive").style.display="none";
- engine.enabled = true;
-}
-
-function endGame(){
- stats.dust += sessionDust;
- localStorage.setItem("sn_stats", JSON.stringify(stats));
- document.getElementById("revive").style.display="none";
- document.getElementById("home").style.display="flex";
-}
-
-function buyUpgrade(type){
- let cost = 50*(upgrades[type]+1);
- if(stats.dust < cost) return alert("Not enough dust");
-
- stats.dust -= cost;
- upgrades[type]++;
- localStorage.setItem("sn_upgrades", JSON.stringify(upgrades));
- localStorage.setItem("sn_stats", JSON.stringify(stats));
-}
-
-// INPUT
-window.addEventListener("pointermove", e=>{
- currentX = e.clientX;
-});
-
-window.addEventListener("pointerup", e=>{
- if(!engine) return;
- if(Date.now()-lastDropTime < 500) return;
-
- dropCount++;
-
- let maxLvl = Math.min(3 + Math.floor(dropCount/20), 6);
- let lvl = Math.floor(Math.random()*maxLvl);
-
- spawn(currentX, lvl);
- play(300);
-
- lastDropTime = Date.now();
-});
+    window.addEventListener('pointermove', e => currentX = e.clientX);
+    window.addEventListener('pointerup', e => {
+        if (!gameStarted || isPaused || Date.now()-lastDropTime < 600 || e.target.closest('.icon-btn, .btn, .shop-btn, #gravity-ui')) return;
+        spawn(currentX, isFlipped ? height - 100 : 100, nextLevel); playSound('drop');
+        nextLevel = afterNextLevel; afterNextLevel = Math.floor(Math.random()*3); updatePreview(); lastDropTime = Date.now();
+    });
 </script>
-
 </body>
 </html>
