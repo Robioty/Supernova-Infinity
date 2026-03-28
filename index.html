@@ -2,33 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Supernova v5.3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Supernova: Infinity v5.4</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
 <style>
+/* ORIGINAL STYLES PRESERVED */
 :root { --accent:#38bdf8; --gold:#fbbf24; --danger:#ef4444; --glass:rgba(255,255,255,0.08);}
-body{margin:0;overflow:hidden;background:#010206;color:white;font-family:sans-serif;}
+body { margin:0; overflow:hidden; background:#010206; font-family:'Segoe UI'; color:white; touch-action:none;}
+#nebula { position:fixed; inset:0; background:radial-gradient(circle at 50% 50%, #111827 0%, #010206 100%); z-index:-2;}
+#score-label { position:fixed; top:20px; left:50%; transform:translateX(-50%); font-size:2.8em; font-weight:900;}
+#ghost { position:absolute; border:2px dashed rgba(255,255,255,0.25); border-radius:50%; pointer-events:none; z-index:999;}
 
-#score{position:fixed;top:20px;left:50%;transform:translateX(-50%);font-size:2.5em;font-weight:900;}
-#ghost{position:absolute;border:2px dashed rgba(255,255,255,0.3);border-radius:50%;pointer-events:none;}
-
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;}
-.btn{padding:14px;margin:5px;background:var(--accent);border:none;border-radius:12px;color:white;font-weight:900;}
-
-.shop-row{display:flex;justify-content:space-between;width:260px;margin:6px;}
+.overlay { position:fixed; inset:0; background:rgba(1,4,9,0.98); z-index:2000; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.btn { background:var(--accent); padding:14px; border:none; border-radius:12px; font-weight:900; color:white; margin:6px;}
+.shop-row { display:flex; justify-content:space-between; width:260px; margin:6px;}
 </style>
 </head>
 
 <body>
 
-<div id="score">0</div>
+<div id="nebula"></div>
+<div id="score-label">0</div>
 <div id="ghost"></div>
 
 <div id="home" class="overlay">
 <h1>SUPERNOVA</h1>
-<button class="btn" onclick="startGame()">PLAY</button>
+<button class="btn" onclick="startGame()">LAUNCH</button>
 
 <h3>UPGRADES</h3>
 <div class="shop-row"><span>Score Boost</span><button class="btn" onclick="buyUpgrade('score')">✨</button></div>
@@ -45,32 +46,35 @@ body{margin:0;overflow:hidden;background:#010206;color:white;font-family:sans-se
 <script>
 const {Engine,Render,Runner,Bodies,Composite,Events,Body} = Matter;
 
-let engine,render,runner;
-let activeBodies=[],particles=[];
+let engine, render, runner;
+let activeBodies = [];
+let particles = [];
 
-let score=0,sessionDust=0,dropCount=0;
-let reviveUsed=false,lastDropTime=0;
+let score = 0, sessionDust = 0;
+let dropCount = 0, reviveUsed = false, lastDropTime = 0;
 
-let currentX=innerWidth/2;
-let ghost=document.getElementById("ghost");
+let currentX = innerWidth/2;
+const ghost = document.getElementById("ghost");
 
-const MAX_PARTICLES=300;
-const MERGE_PULL=0.0005;
+const MAX_PARTICLES = 300;
+const MERGE_PULL = 0.0003;
 
-let upgrades=JSON.parse(localStorage.getItem("sn_upgrades")||'{"score":0,"gravity":0,"combo":0}');
-let stats=JSON.parse(localStorage.getItem("sn_stats")||'{"dust":0}');
+let upgrades = JSON.parse(localStorage.getItem("sn_upgrades")||'{"score":0,"gravity":0,"combo":0}');
+let stats = JSON.parse(localStorage.getItem("sn_stats")||'{"dust":0}');
 
-const PLANETS=[{r:16},{r:24},{r:34},{r:45},{r:59},{r:78},{r:99},{r:120}];
+const PLANETS = [
+ {r:16},{r:24},{r:34},{r:45},{r:59},{r:78},{r:99},{r:120}
+];
 
 let audioCtx;
-window.addEventListener("pointerdown",()=>{if(!audioCtx)audioCtx=new AudioContext();},{once:true});
+window.addEventListener("pointerdown",()=>{ if(!audioCtx) audioCtx = new AudioContext(); }, {once:true});
 
 function play(freq){
- if(!audioCtx)return;
- let o=audioCtx.createOscillator(),g=audioCtx.createGain();
- o.connect(g);g.connect(audioCtx.destination);
- o.frequency.value=freq;g.gain.value=0.05;
- o.start();o.stop(audioCtx.currentTime+0.1);
+ if(!audioCtx) return;
+ let o = audioCtx.createOscillator(), g = audioCtx.createGain();
+ o.connect(g); g.connect(audioCtx.destination);
+ o.frequency.value = freq; g.gain.value = 0.05;
+ o.start(); o.stop(audioCtx.currentTime + 0.1);
 }
 
 function startGame(){
@@ -79,32 +83,45 @@ function startGame(){
   Engine.clear(engine);
  }
 
- document.getElementById("home").style.display="none";
- document.getElementById("revive").style.display="none";
+ document.getElementById("home").style.display = "none";
+ document.getElementById("revive").style.display = "none";
 
- engine=Engine.create();
- render=Render.create({element:document.body,engine,options:{width:innerWidth,height:innerHeight,wireframes:false,background:"transparent"}});
+ engine = Engine.create();
+
+ render = Render.create({
+  element: document.body,
+  engine,
+  options: { width: innerWidth, height: innerHeight, wireframes: false, background: "transparent" }
+ });
+
  Render.run(render);
- runner=Runner.create();
- Runner.run(runner,engine);
 
- Composite.add(engine.world,[Bodies.rectangle(innerWidth/2,innerHeight+40,innerWidth,80,{isStatic:true})]);
+ runner = Runner.create();
+ Runner.run(runner, engine);
 
- score=0;sessionDust=0;dropCount=0;reviveUsed=false;
- activeBodies=[];
+ Composite.add(engine.world, [
+  Bodies.rectangle(innerWidth/2, innerHeight+40, innerWidth, 80, {isStatic:true})
+ ]);
 
- Events.on(engine,"collisionStart",e=>{
+ score = 0; sessionDust = 0; dropCount = 0; reviveUsed = false;
+ activeBodies = [];
+
+ // COLLISION
+ Events.on(engine, "collisionStart", e=>{
   e.pairs.forEach(p=>{
-   if(p.bodyA!==p.bodyB &&
-      p.bodyA.plugin?.lvl===p.bodyB.plugin?.lvl &&
-      !p.bodyA.plugin.merged &&
-      !p.bodyB.plugin.merged){
-       merge(p.bodyA,p.bodyB);
+   if(
+    p.bodyA !== p.bodyB &&
+    p.bodyA.plugin?.lvl === p.bodyB.plugin?.lvl &&
+    !p.bodyA.plugin.merged &&
+    !p.bodyB.plugin.merged
+   ){
+    merge(p.bodyA, p.bodyB);
    }
   });
  });
 
- Events.on(engine,"beforeUpdate",()=>{
+ // MERGE ASSIST
+ Events.on(engine, "beforeUpdate", ()=>{
   activeBodies.forEach(a=>{
    activeBodies.forEach(b=>{
     if(a!==b && a.plugin.lvl===b.plugin.lvl){
@@ -118,114 +135,134 @@ function startGame(){
    });
   });
  });
+
+ // RENDER LOOP (YOUR STYLE PRESERVED)
+ Events.on(render, "afterRender", ()=>{
+  const ctx = render.context;
+
+  // ghost
+  let r = PLANETS[0].r;
+  ctx.save();
+  ctx.setLineDash([6,6]);
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  ctx.beginPath();
+  ctx.arc(currentX, 100, r, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+
+  // particles
+  particles = particles.filter(p=>p.life>0);
+  particles.forEach(p=>{
+   p.x+=p.vx; p.y+=p.vy; p.life-=0.02;
+   ctx.globalAlpha = p.life;
+   ctx.fillStyle = "#fff";
+   ctx.fillRect(p.x, p.y, 2, 2);
+   ctx.globalAlpha = 1;
+  });
+ });
+
 }
 
-function spawn(x,lvl){
- const b=Bodies.circle(x,100,PLANETS[lvl].r,{restitution:0.3,plugin:{lvl,merged:false}});
+function spawn(x, lvl){
+ const b = Bodies.circle(x, 100, PLANETS[lvl].r, {
+  restitution: 0.3,
+  plugin: { lvl, merged:false }
+ });
  activeBodies.push(b);
- Composite.add(engine.world,b);
+ Composite.add(engine.world, b);
 }
 
 function removeBody(b){
- activeBodies=activeBodies.filter(x=>x!==b);
- Composite.remove(engine.world,b);
+ activeBodies = activeBodies.filter(x=>x!==b);
+ Composite.remove(engine.world, b);
 }
 
 function merge(a,b){
- if(a.plugin.merged||b.plugin.merged)return;
- a.plugin.merged=b.plugin.merged=true;
+ if(a.plugin.merged||b.plugin.merged) return;
 
- let lvl=a.plugin.lvl+1;
- let x=(a.position.x+b.position.x)/2;
+ a.plugin.merged = b.plugin.merged = true;
 
- removeBody(a);removeBody(b);
+ let lvl = a.plugin.lvl + 1;
+ let x = (a.position.x + b.position.x)/2;
 
- if(lvl<PLANETS.length)spawn(x,lvl);
+ removeBody(a); removeBody(b);
 
- let multiplier=1+(upgrades.score*0.1);
- score+=lvl*100*multiplier;
- sessionDust+=lvl;
+ if(lvl < PLANETS.length) spawn(x, lvl);
 
- document.getElementById("score").innerText=Math.floor(score);
+ let mult = 1 + (upgrades.score * 0.1);
+ score += lvl * 100 * mult;
+ sessionDust += lvl;
 
+ document.getElementById("score-label").innerText = Math.floor(score);
+
+ createExplosion(x,100);
  play(800);
  screenShake();
- createExplosion(x,100);
-}
-
-function screenShake(){
- document.body.style.transform="translate(4px,-4px)";
- setTimeout(()=>document.body.style.transform="",80);
 }
 
 function createExplosion(x,y){
- for(let i=0;i<10;i++){
+ for(let i=0;i<12;i++){
   if(particles.length<MAX_PARTICLES){
-   particles.push({x,y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10,life:1});
+   particles.push({x,y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8,life:1});
   }
  }
 }
 
-function revive(){
- if(reviveUsed)return;
- if(sessionDust<100)return alert("Not enough dust");
+function screenShake(){
+ document.body.style.transform="translate(3px,-3px)";
+ setTimeout(()=>document.body.style.transform="",80);
+}
 
- sessionDust-=100;
- reviveUsed=true;
+function revive(){
+ if(reviveUsed) return;
+ if(sessionDust < 100) return alert("Not enough dust");
+
+ sessionDust -= 100;
+ reviveUsed = true;
 
  activeBodies.sort((a,b)=>a.position.y-b.position.y)
  .slice(0,3)
  .forEach(removeBody);
 
  document.getElementById("revive").style.display="none";
- engine.enabled=true;
-}
-
-function gameOver(){
- engine.enabled=false;
- if(!reviveUsed){
-  document.getElementById("revive").style.display="flex";
- } else endGame();
+ engine.enabled = true;
 }
 
 function endGame(){
- stats.dust+=sessionDust;
- localStorage.setItem("sn_stats",JSON.stringify(stats));
+ stats.dust += sessionDust;
+ localStorage.setItem("sn_stats", JSON.stringify(stats));
  document.getElementById("revive").style.display="none";
  document.getElementById("home").style.display="flex";
 }
 
 function buyUpgrade(type){
- let cost=50*(upgrades[type]+1);
- if(stats.dust<cost)return alert("Not enough dust");
- stats.dust-=cost;
+ let cost = 50*(upgrades[type]+1);
+ if(stats.dust < cost) return alert("Not enough dust");
+
+ stats.dust -= cost;
  upgrades[type]++;
- localStorage.setItem("sn_upgrades",JSON.stringify(upgrades));
- localStorage.setItem("sn_stats",JSON.stringify(stats));
+ localStorage.setItem("sn_upgrades", JSON.stringify(upgrades));
+ localStorage.setItem("sn_stats", JSON.stringify(stats));
 }
 
-window.addEventListener("pointermove",e=>{
- currentX=e.clientX;
-
- let r=PLANETS[0].r;
- ghost.style.width=ghost.style.height=(r*2)+"px";
- ghost.style.left=(currentX-r)+"px";
- ghost.style.top="80px";
+// INPUT
+window.addEventListener("pointermove", e=>{
+ currentX = e.clientX;
 });
 
-window.addEventListener("pointerup",e=>{
- if(!engine)return;
- if(Date.now()-lastDropTime<500)return;
+window.addEventListener("pointerup", e=>{
+ if(!engine) return;
+ if(Date.now()-lastDropTime < 500) return;
 
  dropCount++;
 
- let maxLvl=Math.min(3+Math.floor(dropCount/20),6);
- let lvl=Math.floor(Math.random()*maxLvl);
+ let maxLvl = Math.min(3 + Math.floor(dropCount/20), 6);
+ let lvl = Math.floor(Math.random()*maxLvl);
 
- spawn(currentX,lvl);
+ spawn(currentX, lvl);
  play(300);
 
- lastDropTime=Date.now();
+ lastDropTime = Date.now();
 });
 </script>
 
