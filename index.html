@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Supernova: Infinity v7.0</title>
+    <title>Supernova: Infinity v8.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         :root {
@@ -118,6 +118,18 @@
         /* Tip jar */
         #tip-jar-btn{background:linear-gradient(135deg,#f472b6,#a78bfa);border:none;color:white;padding:13px;border-radius:14px;font-weight:900;cursor:pointer;width:100%;margin-top:8px;font-size:0.95em;pointer-events:auto;}
         #tip-jar-btn:active{opacity:0.85;}
+
+        /* Tutorial overlay */
+        #tutorial-overlay{position:fixed;inset:0;z-index:3500;pointer-events:none;display:none;}
+        #tutorial-overlay.active{display:block;pointer-events:auto;}
+        .tut-backdrop{position:absolute;inset:0;background:rgba(1,4,9,0.82);}
+        .tut-spotlight{position:absolute;border-radius:50%;box-shadow:0 0 0 9999px rgba(1,4,9,0.82);pointer-events:none;transition:all 0.4s ease;}
+        .tut-card{position:absolute;background:rgba(10,15,30,0.97);border:1px solid rgba(56,189,248,0.5);border-radius:20px;padding:16px 20px;max-width:280px;text-align:center;color:white;font-size:0.88em;line-height:1.5;}
+        .tut-card b{color:var(--accent);}
+        .tut-card .tut-step{font-size:0.65em;color:var(--accent);font-weight:900;margin-bottom:6px;opacity:0.8;letter-spacing:1px;}
+        .tut-btn{background:var(--accent);color:#000;border:none;padding:10px 28px;border-radius:10px;font-weight:900;cursor:pointer;margin-top:12px;font-size:0.95em;pointer-events:auto;}
+        .tut-arrow{position:absolute;font-size:2em;pointer-events:none;animation:tutBounce 0.7s infinite alternate;}
+        @keyframes tutBounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
     </style>
 </head>
 <body>
@@ -177,6 +189,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
             <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:12px;">BEST<br><b id="best-score-val" style="color:var(--accent)">0</b></div>
             <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:12px;">RANK<br><b id="rank-val" style="color:var(--accent)">Recruit</b></div>
+            <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:12px;grid-column:1/3;">🔥 Daily Streak: <b id="streak-val" style="color:var(--gold)">0</b> day<span id="streak-plural">s</span></div>
         </div>
         <button class="btn" onclick="startGame()">🚀 LAUNCH MISSION</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showMissions()">📋 DAILY MISSIONS</button>
@@ -227,7 +240,7 @@
         <div class="toggle-row"><span>Sound Effects</span><button class="toggle on" id="sfx-toggle" onclick="toggleSetting('sfx')"></button></div>
         <div class="toggle-row"><span>Screen Shake</span><button class="toggle on" id="shake-toggle" onclick="toggleSetting('shake')"></button></div>
         <div class="toggle-row"><span>Particles</span><button class="toggle on" id="particles-toggle" onclick="toggleSetting('particles')"></button></div>
-        <p style="font-size:0.7em;opacity:0.4;margin:10px 0 2px">Supernova: Infinity v7.0 · Built with ❤️</p>
+        <p style="font-size:0.7em;opacity:0.4;margin:10px 0 2px">Supernova: Infinity v8.0 · Built with ❤️</p>
         <button class="btn" onclick="hideSettings()">CLOSE</button>
     </div>
 </div>
@@ -259,11 +272,25 @@
             <div class="stat-cell"><div class="stat-val" id="end-dust">0</div><div class="stat-lbl">STARDUST EARNED</div></div>
             <div class="stat-cell"><div class="stat-val" id="end-combo">x1</div><div class="stat-lbl">BEST COMBO</div></div>
             <div class="stat-cell"><div class="stat-val" id="end-flips">0</div><div class="stat-lbl">GRAVITY FLIPS</div></div>
+            <div class="stat-cell" style="grid-column:1/3"><div class="stat-val" id="end-time">0:00</div><div class="stat-lbl">RUN TIME</div></div>
         </div>
         <div id="end-new-best-banner" style="display:none;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:8px;margin-bottom:8px;color:var(--gold);font-weight:900;">🏆 NEW PERSONAL BEST!</div>
         <button class="btn" onclick="endScreenPlay()">🚀 PLAY AGAIN</button>
+        <button class="btn" style="background:rgba(56,189,248,0.25);border:1px solid rgba(56,189,248,0.4)" onclick="shareScore()">📤 SHARE SCORE</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="endScreenHome()">🏠 HOME</button>
     </div>
+</div>
+
+<!-- TUTORIAL -->
+<div id="tutorial-overlay">
+    <div class="tut-backdrop"></div>
+    <div class="tut-spotlight" id="tut-spotlight"></div>
+    <div class="tut-card" id="tut-card">
+        <div class="tut-step" id="tut-step-label">STEP 1 OF 3</div>
+        <div id="tut-text"></div>
+        <button class="tut-btn" id="tut-btn" onclick="tutNext()">GOT IT →</button>
+    </div>
+    <div class="tut-arrow" id="tut-arrow">👆</div>
 </div>
 
 <script>
@@ -297,7 +324,11 @@ let comet=null, cometTail=[], cometTimer=null;
 let anomaly=null, anomalyTimer=null;
 let blackHoleTimer=null;
 let _sMerges=0, _sMaxCombo=0, _sFlips=0, _sBestPlanet=0;
+let _runStartTime=0; // for run timer
 let settings={ sfx:true, shake:true, particles:true };
+
+// ── Tutorial state ────────────────────────────────────────────────────────────
+let tutStep=0, tutActive=false;
 
 // ── Laser strike state ────────────────────────────────────────────────────────
 let laserMode=false, laserTargets=[], laserShip=null, laserBeams=[];
@@ -334,13 +365,136 @@ function loadStats(){
 function saveStats(fin=false){let d=loadStats();d.best=Math.max(d.best,score);if(fin){d.dust+=sessionDust;sessionDust=0;}safeSet('sn_v7',d);loadStats();}
 function refreshDustHUD(){const base=_statsCache?_statsCache.dust:0;const total=(base+sessionDust).toLocaleString();document.getElementById('dust-val').innerText=total;const cv=document.getElementById('const-dust-val');if(cv)cv.innerText=total;}
 
-// ── Daily bonus ───────────────────────────────────────────────────────────────
+// ── Daily bonus & streak ──────────────────────────────────────────────────────
 function checkDailyBonus(){
-    const today=new Date().toDateString(),last=safeGet('sn_daily');
-    if(last===today)return;
+    const today=new Date().toDateString();
+    const last=safeGet('sn_daily');
+    const streakData=safeGet('sn_streak')||{count:0,last:''};
+
+    // Check if yesterday to continue streak
+    const yesterday=new Date(Date.now()-86400000).toDateString();
+    if(last===today){
+        // Already visited today — just show streak
+        updateStreakDisplay(streakData.count);
+        return;
+    }
+
+    // New day — award bonus
     safeSet('sn_daily',today);
-    let d=safeGet('sn_v7')||{best:0,dust:0,discovered:2};d.dust+=100;safeSet('sn_v7',d);
+    let d=safeGet('sn_v7')||{best:0,dust:0,discovered:2};
+    d.dust+=100; safeSet('sn_v7',d);
     document.getElementById('daily-banner').style.display='block';
+
+    // Update streak
+    let newStreak=1;
+    if(streakData.last===yesterday){
+        newStreak=streakData.count+1;
+    }
+    safeSet('sn_streak',{count:newStreak,last:today});
+
+    // Streak bonus dust (every 7 days give extra 200)
+    if(newStreak>1 && newStreak%7===0){
+        d=safeGet('sn_v7')||{best:0,dust:0,discovered:2};
+        d.dust+=200; safeSet('sn_v7',d);
+        document.getElementById('daily-banner').innerHTML=`🎁 Day ${newStreak} streak! <b>+300 ✨ Stardust</b> claimed!`;
+    }
+    updateStreakDisplay(newStreak);
+}
+
+function updateStreakDisplay(count){
+    const el=document.getElementById('streak-val');
+    const pl=document.getElementById('streak-plural');
+    if(el){ el.innerText=count; }
+    if(pl){ pl.innerText=count===1?'':'s'; }
+}
+
+// ── Share score ───────────────────────────────────────────────────────────────
+function shareScore(){
+    const planet=_sBestPlanet>=0?PLANET_DATA[Math.min(_sBestPlanet,9)].name:'Mote';
+    const text=`🚀 Just scored ${score.toLocaleString()} on Supernova: Infinity!\n⭐ Best planet: ${planet} · 💥 ${_sMerges} merges\nCan you beat me? #SupernovaInfinity`;
+    if(navigator.share){
+        navigator.share({title:'Supernova: Infinity',text}).catch(()=>{});
+    } else {
+        navigator.clipboard.writeText(text).then(()=>showToast('Score copied to clipboard!','var(--success)')).catch(()=>showToast('Share not available on this device','var(--danger)'));
+    }
+}
+
+// ── Run timer format ──────────────────────────────────────────────────────────
+function formatRunTime(ms){
+    const s=Math.floor(ms/1000);
+    const m=Math.floor(s/60);
+    return `${m}:${String(s%60).padStart(2,'0')}`;
+}
+
+// ── Tutorial system ───────────────────────────────────────────────────────────
+const TUT_STEPS=[
+    {
+        text:'<b>Drag left and right</b> to aim, then <b>lift your finger</b> to drop a planet. Try it now!',
+        spotFn:()=>({x:width/2, y:TOP_BAR+80, r:60}),
+        arrowFn:()=>({x:width/2-10, y:TOP_BAR+50}),
+        label:'STEP 1 OF 3'
+    },
+    {
+        text:'Drop planets of the <b>same type</b> on top of each other to <b>merge</b> them into a bigger one. Chain merges for a <b>COMBO!</b>',
+        spotFn:()=>({x:width/2, y:TOP_BAR+PLAY_H*0.5, r:80}),
+        arrowFn:()=>({x:width/2-10, y:TOP_BAR+PLAY_H*0.3}),
+        label:'STEP 2 OF 3'
+    },
+    {
+        text:'Don\'t let planets pile up past the <b style="color:var(--danger)">red danger line</b>. Use the <b style="color:var(--gold)">G button</b> to flip gravity when you\'re in trouble!',
+        spotFn:()=>({x:width-40, y:height-BOT_BAR/2, r:44}),
+        arrowFn:()=>({x:width-80, y:height-BOT_BAR-30}),
+        label:'STEP 3 OF 3'
+    }
+];
+
+function startTutorial(){
+    tutStep=0; tutActive=true;
+    // Pause physics during tutorial so planets don't pile up while reading
+    if(engine) engine.enabled=false;
+    document.getElementById('tutorial-overlay').classList.add('active');
+    showTutStep(0);
+}
+
+function showTutStep(i){
+    const step=TUT_STEPS[i];
+    if(!step){endTutorial();return;}
+
+    document.getElementById('tut-step-label').innerText=step.label;
+    document.getElementById('tut-text').innerHTML=step.text;
+
+    const sp=step.spotFn();
+    const spot=document.getElementById('tut-spotlight');
+    spot.style.width=(sp.r*2)+'px';
+    spot.style.height=(sp.r*2)+'px';
+    spot.style.left=(sp.x-sp.r)+'px';
+    spot.style.top=(sp.y-sp.r)+'px';
+
+    const ap=step.arrowFn();
+    const arrow=document.getElementById('tut-arrow');
+    arrow.style.left=(ap.x)+'px';
+    arrow.style.top=(ap.y)+'px';
+
+    const card=document.getElementById('tut-card');
+    const cardTop=sp.y+sp.r+18;
+    card.style.top=(cardTop+200<height?cardTop:sp.y-sp.r-200)+'px';
+    card.style.left=Math.max(10,Math.min(width-300,sp.x-140))+'px';
+
+    document.getElementById('tut-btn').innerText=i===TUT_STEPS.length-1?"LET'S GO! 🚀":"GOT IT →";
+}
+
+function tutNext(){
+    tutStep++;
+    if(tutStep>=TUT_STEPS.length){endTutorial();return;}
+    showTutStep(tutStep);
+}
+
+function endTutorial(){
+    tutActive=false;
+    document.getElementById('tutorial-overlay').classList.remove('active');
+    // Resume physics now that tutorial is dismissed
+    if(engine&&gameStarted) engine.enabled=true;
+    safeSet('sn_tutdone',true);
 }
 
 // ── Constellation ─────────────────────────────────────────────────────────────
@@ -645,11 +799,73 @@ function fireLaser(){
     if(laserTargets.length===0){cancelLaser();return;}
     document.getElementById('laser-overlay').classList.remove('active');
     laserMode=false;
-    // Spawn ship off-screen left, animate across
-    laserShip={x:-60,y:PLAY_H*0.15,targetIdx:0,fired:[],done:false,vx:6};
+    // Sort targets left-to-right so ship fires them in order as it flies
+    const sorted=[...laserTargets].sort((a,b)=>a.position.x-b.position.x);
+    laserShip={
+        x:-70, y:PLAY_H*0.15, vx:3.5,
+        fireQueue:sorted, targetIdx:0, done:false,
+        shotCooldown:0   // frames to wait between shots
+    };
+    laserShip.fireQueue.forEach(t=>{ t._fireX=Math.max(100, t.position.x-50); });
 }
 
-// ── Gravity flip ──────────────────────────────────────────────────────────────
+// ── Laser ship drawing & logic ────────────────────────────────────────────────
+function drawLaserShip(ctx){
+    if(!laserShip)return;
+    const s=laserShip;
+    s.x+=s.vx;
+
+    // Engine glow
+    const eng=ctx.createRadialGradient(s.x-38,s.y,2,s.x-38,s.y,20);
+    eng.addColorStop(0,'rgba(251,191,36,0.9)');eng.addColorStop(1,'rgba(251,191,36,0)');
+    ctx.save();ctx.fillStyle=eng;ctx.beginPath();ctx.arc(s.x-38,s.y,20,0,Math.PI*2);ctx.fill();ctx.restore();
+    // Hull
+    ctx.save();ctx.translate(s.x,s.y);
+    ctx.fillStyle='#c0d8ff';
+    ctx.beginPath();ctx.moveTo(-42,0);ctx.lineTo(20,-15);ctx.lineTo(48,0);ctx.lineTo(20,15);ctx.closePath();ctx.fill();
+    // Cockpit
+    ctx.fillStyle='#38bdf8';ctx.beginPath();ctx.ellipse(12,0,15,8,0,0,Math.PI*2);ctx.fill();
+    // Wing fins
+    ctx.fillStyle='rgba(56,189,248,0.45)';
+    ctx.beginPath();ctx.moveTo(-8,-15);ctx.lineTo(14,-24);ctx.lineTo(20,-15);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(-8,15);ctx.lineTo(14,24);ctx.lineTo(20,15);ctx.closePath();ctx.fill();
+    ctx.restore();
+
+    // Sequential firing — fire when ship x reaches each target's fireX, with cooldown between shots
+    if(!s.done){
+        if(s.shotCooldown>0){
+            s.shotCooldown--;
+        } else {
+            const tgt=s.fireQueue[s.targetIdx];
+            if(tgt&&s.x>=tgt._fireX){
+                if(!tgt.plugin?.merged){
+                    laserBeams.push({x1:s.x+48,y1:s.y,x2:tgt.position.x,y2:tgt.position.y,life:1.0});
+                    createExplosion(tgt.position.x,tgt.position.y,PLANET_DATA[tgt.plugin.lvl].color);
+                    Composite.remove(engine.world,tgt);
+                    playSound('laser');screenShake(8,150);
+                    s.shotCooldown=28; // ~0.5s pause before next shot at 60fps
+                }
+                s.targetIdx++;
+                if(s.targetIdx>=s.fireQueue.length)s.done=true;
+            }
+        }
+    }
+
+    // Draw beams (with impact glow)
+    laserBeams=laserBeams.filter(b=>b.life>0);
+    laserBeams.forEach(b=>{
+        ctx.save();
+        ctx.globalAlpha=b.life;
+        ctx.strokeStyle='#ef4444';ctx.lineWidth=3;ctx.shadowColor='#ef4444';ctx.shadowBlur=14;
+        ctx.beginPath();ctx.moveTo(b.x1,b.y1);ctx.lineTo(b.x2,b.y2);ctx.stroke();
+        ctx.fillStyle=`rgba(239,68,68,${b.life})`;
+        ctx.beginPath();ctx.arc(b.x2,b.y2,9*b.life,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+        b.life-=0.04;
+    });
+
+    if(s.x>width+110)laserShip=null;
+}
 function flipGravity(){
     if(gravityCharge<CHARGE_TIME){showToast('Gravity recharging…','var(--gold)');return;}
     isFlipped=!isFlipped;engine.gravity.y*=-1;gravityCharge=0;
@@ -706,45 +922,7 @@ function drawComet(ctx){
     const pulse=0.6+0.4*Math.sin(Date.now()/180);ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#ffffff';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('TAP!',comet.x,comet.y-comet.radius*2.8);ctx.restore();
 }
 
-// ── Laser ship drawing & logic ────────────────────────────────────────────────
-function drawLaserShip(ctx){
-    if(!laserShip)return;
-    const s=laserShip;
-    // Animate ship rightward
-    s.x+=s.vx;
-    // Draw ship body
-    ctx.save();ctx.translate(s.x,s.y);
-    ctx.fillStyle='#a0c4ff';ctx.beginPath();ctx.moveTo(-30,0);ctx.lineTo(30,-12);ctx.lineTo(50,0);ctx.lineTo(30,12);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#38bdf8';ctx.fillRect(-10,-5,20,10);
-    ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(-28,0,6,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-
-    // Fire laser at next unfired target
-    if(s.targetIdx<laserTargets.length&&!s.done){
-        const tgt=laserTargets[s.targetIdx];
-        if(tgt&&!tgt.plugin?.merged){
-            const beam={x1:s.x+50,y1:s.y,x2:tgt.position.x,y2:tgt.position.y,life:1.0};
-            laserBeams.push(beam);
-            // Vaporise
-            createExplosion(tgt.position.x,tgt.position.y,PLANET_DATA[tgt.plugin.lvl].color);
-            Composite.remove(engine.world,tgt);
-            playSound('laser');screenShake(8,150);
-            s.targetIdx++;
-            if(s.targetIdx>=laserTargets.length)s.done=true;
-        }else{s.targetIdx++;}
-    }
-    // Draw beams
-    laserBeams=laserBeams.filter(b=>b.life>0);
-    laserBeams.forEach(b=>{
-        ctx.save();ctx.globalAlpha=b.life;ctx.strokeStyle='#ef4444';ctx.lineWidth=3;ctx.shadowColor='#ef4444';ctx.shadowBlur=12;
-        ctx.beginPath();ctx.moveTo(b.x1,b.y1);ctx.lineTo(b.x2,b.y2);ctx.stroke();ctx.restore();
-        b.life-=0.06;
-    });
-    // Ship exits right
-    if(s.x>width+80)laserShip=null;
-}
-
-// ── Solar wind ────────────────────────────────────────────────────────────────
+// ── Gravity flip ──────────────────────────────────────────────────────────────
 function scheduleAnomaly(){if(anomalyTimer)clearTimeout(anomalyTimer);const d=ANOMALY_INTERVAL_MIN+Math.random()*(ANOMALY_INTERVAL_MAX-ANOMALY_INTERVAL_MIN);anomalyTimer=setTimeout(()=>{if(gameStarted&&!isPaused)warnAnomaly();else scheduleAnomaly();},d);}
 function warnAnomaly(){const w=document.getElementById('anomaly-warn');w.innerText='⚠️ SOLAR WIND INCOMING!';w.style.display='block';setTimeout(()=>{w.style.display='none';startAnomaly();},3000);}
 function startAnomaly(){const dir=Math.random()>0.5?1:-1;anomaly={type:'solar_wind',dir,force:0.0003,endTime:Date.now()+ANOMALY_DURATION};const b=document.getElementById('anomaly-banner');b.innerText=`🌬️ SOLAR WIND — pushing ${dir>0?'RIGHT':'LEFT'}`;b.style.display='block';setNebulaMood('wind');}
@@ -784,19 +962,23 @@ function calcGhostY(x,flipped){
 }
 
 // ── End-of-game stats screen ──────────────────────────────────────────────────
-function showEndScreen(){
-    const isNewBest=score>(_statsCache?_statsCache.best-sessionDust:0);
+function showEndScreen(dustEarned, wasNewBest){
     document.getElementById('end-score').innerText=score.toLocaleString();
     document.getElementById('end-merges').innerText=_sMerges;
     document.getElementById('end-best-planet').innerText=_sBestPlanet>=0?PLANET_DATA[Math.min(_sBestPlanet,9)].name:'—';
-    document.getElementById('end-dust').innerText='+'+sessionDust;
+    document.getElementById('end-dust').innerText='+'+dustEarned;
     document.getElementById('end-combo').innerText='x'+_sMaxCombo;
     document.getElementById('end-flips').innerText=_sFlips;
-    document.getElementById('end-new-best-banner').style.display=(gamesPlayed>1&&isNewBest)?'block':'none';
+    document.getElementById('end-time').innerText=formatRunTime(Date.now()-_runStartTime);
+    document.getElementById('end-new-best-banner').style.display=(gamesPlayed>1&&wasNewBest)?'block':'none';
     document.getElementById('end-screen').style.display='flex';
 }
 function endScreenPlay(){document.getElementById('end-screen').style.display='none';startGame();}
-function endScreenHome(){document.getElementById('end-screen').style.display='none';loadStats();}
+function endScreenHome(){
+    document.getElementById('end-screen').style.display='none';
+    loadStats();
+    document.getElementById('home-screen').style.display='flex';
+}
 
 // ── Pause / Abandon / Game Over ───────────────────────────────────────────────
 function togglePause(){
@@ -814,6 +996,10 @@ function confirmAbandon(){
 }
 function restartMission(){saveStats(false);isPaused=false;document.getElementById('pause-menu').style.display='none';startGame();}
 function gameOver(){
+    // Capture stats BEFORE saveStats() zeroes sessionDust
+    const dustEarned=sessionDust;
+    const wasNewBest=gamesPlayed>1&&score>(_statsCache?_statsCache.best:0);
+
     saveStats(true);gameStarted=false;
 
     // Stop physics and rendering — nothing should paint over the end screen
@@ -834,7 +1020,7 @@ function gameOver(){
     document.getElementById('evo-bar').style.display='none';
 
     setNebulaMood('normal');
-    showEndScreen();
+    showEndScreen(dustEarned, wasNewBest);
 }
 
 // ── Discovery log ─────────────────────────────────────────────────────────────
@@ -883,6 +1069,7 @@ function startGame(){
     anomaly=null;document.getElementById('anomaly-banner').style.display='none';
     laserMode=false;laserShip=null;laserTargets=[];laserBeams=[];
     gamesPlayed++;_sMerges=0;_sMaxCombo=0;_sFlips=0;_sBestPlanet=0;
+    _runStartTime=Date.now();
     previousBest=(_statsCache||loadStats()).best;
     nextLevel=Math.floor(Math.random()*3);afterNextLevel=Math.floor(Math.random()*3);
     document.getElementById('score-label').innerText='0';
@@ -890,6 +1077,11 @@ function startGame(){
     updatePreview();loadStats();initEvents();setNebulaMood('normal');
     comet=null;cometTail=[];if(cometTimer)clearTimeout(cometTimer);_dismissComet();scheduleComet();scheduleAnomaly();
     if(!gravityTooltipShown){gravityTooltipShown=true;const tip=document.getElementById('g-tooltip');tip.classList.add('show');setTimeout(()=>tip.classList.remove('show'),3500);}
+
+    // Show tutorial on very first play
+    if(gamesPlayed===1&&!safeGet('sn_tutdone')){
+        setTimeout(startTutorial, 800);
+    }
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -1003,6 +1195,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameStarte
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadSettings();checkDailyBonus();initMissions();loadStats();
+// Show streak on initial load even if daily bonus already claimed today
+const _savedStreak=safeGet('sn_streak')||{count:0};
+updateStreakDisplay(_savedStreak.count);
 </script>
 </body>
 </html>
