@@ -71,8 +71,9 @@ Earned on every merge. Spend it in **Constellation** (permanent upgrades) or **A
 - Crisis Buffer — longer danger grace period (3 levels)
 - Happy Planets 😊 — smiley faces on all planets (one-time, toggleable)
 - Planet Gas 💨 — fart sound on every merge (one-time, toggleable)
+- Cheeky Planets 🍑 — a cheeky bum on every planet (one-time, toggleable)
 
-**Armory power-ups** (unlock after 3 total games played):
+**Armory power-ups** (available from your very first game):
 - **Nuke** (250✨) — removes all level 0–1 planets
 - **Collapse** (600✨) — removes all level 2–3 planets
 - **Seismic Pulse** (150✨) — shakes the board to unstick piled planets
@@ -90,6 +91,11 @@ Cadet → Pilot → Navigator → Ace → Captain → Major → Colonel → Comm
 - RP is earned by beating your tier's score target, lost by falling under 50% of it
 - **Rank floor**: once you reach a rank, your RP can never drop below that rank's minimum — you can't be demoted below your highest earned rank
 - Tap the RANK cell on the home screen to see the full ladder with your current progress
+
+### Tutorial
+A 6-step interactive tutorial runs automatically on your very first game. It covers: dropping and aiming, merging and combos, the danger line and Near Miss Save, the gravity flip (G button) and comets, the hold slot and previews, and stardust/power-ups/ranked mode. Each step highlights the relevant part of the screen with a spotlight.
+
+The tutorial can be replayed at any time via the **🎓 REPLAY TUTORIAL** button on the home screen.
 
 ### Daily features
 - **Daily Bonus**: +100✨ stardust each new day
@@ -183,12 +189,14 @@ Boot                      loadSettings, checkDailyBonus, checkIdleDust, loadStat
 
 See the comment block at the top of the `<script>` tag in `index.html` for the full changelog (v7.0 → v12.0).
 
-Key changes in the most recent version:
-- **Bug fix**: `CHARGE_TIME is not defined` — constants block was accidentally dropped during a header restructure; all timing constants restored
-- **Zephyra** (lvl 7): r:108 → r:97 (−10%)
-- **Nullar** (lvl 8): r:131 → r:118 (−10%)
-- **Vortex** (lvl 9): r:162 → r:31, completely redesigned as a compact Black Hole with gravitational pull mechanics
-- **Wormhole**: merging two Black Holes triggers a board-clearing wormhole event with canvas animation
+**Recent changes (v12.0):**
+- **Removed 3-game easy mode** — all features (gravity flip, power-ups, solar wind) available from game 1
+- **Tutorial expanded** from 3 steps to 6, covering all core mechanics clearly
+- **🎓 Replay Tutorial** button added to home screen
+- **Cheeky Planets 🍑** constellation upgrade — two round cheeks and a crack drawn on every planet
+- Bug fix: `CHARGE_TIME is not defined` crash on load
+- Zephyra (lvl 7) −10%, Nullar (lvl 8) −10%, Vortex (lvl 9) redesigned as compact Black Hole
+- Wormhole event when two Black Holes merge
 
 ---
 
