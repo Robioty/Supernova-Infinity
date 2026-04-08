@@ -1,0 +1,23 @@
+{
+  "name": "Supernova: Infinity",
+  "short_name": "Supernova",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#010206",
+  "theme_color": "#38bdf8",
+  "description": "A gravity-shifting planet merger game created by a father-daughter duo.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
