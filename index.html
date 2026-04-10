@@ -157,12 +157,14 @@
         #daily-banner{background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(56,189,248,0.1));border:1px solid rgba(251,191,36,0.4);border-radius:14px;padding:10px;margin-bottom:10px;font-size:0.82em;display:none;}
         #const-dust-display{background:var(--glass);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:8px 14px;color:var(--gold);font-weight:900;margin-bottom:12px;font-size:0.9em;}
         #leaderboard-screen{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:2500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
-        .lb-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.05);border-radius:14px;padding:9px 12px;margin-bottom:7px;}
+        .lb-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border-radius:14px;padding:10px 12px;margin-bottom:7px;}
         .lb-row.lb-you{background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);}
-        .lb-pos{font-size:0.9em;font-weight:900;min-width:24px;text-align:center;color:var(--gold);}
-        .lb-name{flex:1;font-weight:700;font-size:0.82em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+        .lb-pos{font-size:0.9em;font-weight:900;min-width:26px;text-align:center;color:var(--gold);flex-shrink:0;}
+        .lb-body{flex:1;min-width:0;}
+        .lb-name{font-weight:700;font-size:0.86em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .lb-meta{display:flex;align-items:center;justify-content:space-between;margin-top:3px;}
         .lb-score{font-weight:900;color:var(--accent);font-size:0.82em;white-space:nowrap;}
-        .lb-rank-tag{font-size:0.58em;font-weight:900;padding:2px 6px;border-radius:6px;border:1px solid;white-space:nowrap;flex-shrink:0;}
+        .lb-rank-tag{font-size:0.58em;font-weight:900;padding:2px 7px;border-radius:6px;border:1px solid;white-space:nowrap;}
         #rank-screen{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:2500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
         .rank-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border-radius:14px;padding:11px 14px;margin-bottom:6px;}
         .rank-row.rank-current{border:1px solid var(--accent);background:rgba(56,189,248,0.08);}
@@ -199,6 +201,17 @@
         .ach-desc{font-size:0.68em;opacity:0.5;margin-top:2px;}
         .ach-locked{opacity:0.3;}
         #achievements-screen{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:2500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+        /* Pilot name entry */
+        #pilot-name-overlay{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:4000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+        #pilot-name-overlay.active{display:flex;}
+        #pilot-input{background:rgba(255,255,255,0.08);border:2px solid var(--accent);color:white;font-size:1.4em;font-weight:900;text-align:center;padding:14px;border-radius:16px;width:100%;max-width:320px;outline:none;margin:16px 0;}
+        /* Pass and play */
+        #passplay-screen{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:2500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+        #passplay-turn-banner{position:fixed;inset:0;z-index:3800;background:rgba(1,4,9,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+        /* PWA install banner */
+        #pwa-banner{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(167,139,250,0.2));border:1px solid rgba(56,189,248,0.4);border-radius:20px;padding:12px 20px;z-index:1500;display:none;text-align:center;max-width:320px;backdrop-filter:blur(10px);}
+        /* Skin preview row */
+        .skin-preview{width:36px;height:36px;border-radius:50%;flex-shrink:0;}
     </style>
 </head>
 <body>
@@ -264,6 +277,7 @@
     <h1 style="font-size:2.8em;color:var(--accent);margin-bottom:14px;text-shadow:0 0 30px var(--accent)">SUPERNOVA</h1>
     <div class="menu-card scroll">
         <div id="daily-banner">🎁 Daily Bonus! <b>+100 ✨ Stardust</b> claimed!</div>
+        <div id="pilot-name-display" style="text-align:center;font-size:0.78em;opacity:0.5;margin-bottom:6px;cursor:pointer" onclick="showSettings()">✏️ Pilot: <span id="pilot-name-val">—</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
             <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:12px;">BEST<br><b id="best-score-val" style="color:var(--accent)">0</b></div>
             <div id="rank-cell" style="background:rgba(255,255,255,0.03);padding:10px;border-radius:12px;cursor:pointer;" onclick="showRankScreen()">
@@ -280,6 +294,7 @@
             <button class="mode-btn" id="mode-ranked-btn" onclick="setMode('ranked')">⚔️ RANKED</button>
         </div>
         <button class="btn btn-cta" onclick="startGame()">🚀 LAUNCH MISSION</button>
+        <button class="btn" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:var(--gold)" onclick="showPassPlay()">👥 PASS &amp; PLAY</button>
         <button class="btn" style="background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(56,189,248,0.2));border:1px solid rgba(251,191,36,0.4)" onclick="startDailyRun()">🌅 DAILY RUN <span id="daily-run-status" style="font-size:0.7em;opacity:0.7"></span></button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showMissions()">📋 DAILY MISSIONS</button>
@@ -330,6 +345,13 @@
 <div id="settings-menu">
     <div class="menu-card">
         <h3>SETTINGS</h3>
+        <div class="toggle-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <span style="font-size:0.85em">Pilot Name</span>
+            <div style="display:flex;gap:8px;width:100%;pointer-events:auto">
+                <input id="settings-pilot-input" type="text" maxlength="16" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;padding:8px;border-radius:10px;font-size:0.9em;outline:none"/>
+                <button onclick="saveSettingsPilotName()" style="background:var(--accent);color:#000;border:none;padding:8px 14px;border-radius:10px;font-weight:900;cursor:pointer;font-size:0.85em;pointer-events:auto">SAVE</button>
+            </div>
+        </div>
         <div class="toggle-row"><span>Sound Effects</span><button class="toggle on" id="sfx-toggle" onclick="toggleSetting('sfx')"></button></div>
         <div class="toggle-row"><span>Screen Shake</span><button class="toggle on" id="shake-toggle" onclick="toggleSetting('shake')"></button></div>
         <div class="toggle-row"><span>Particles</span><button class="toggle on" id="particles-toggle" onclick="toggleSetting('particles')"></button></div>
@@ -417,6 +439,52 @@
         <p style="font-size:0.72em;opacity:0.45;margin:0 0 12px">Milestones from your journey through the cosmos.</p>
         <div id="achievements-list"></div>
         <button class="btn" onclick="hideAchievements()">CLOSE</button>
+    </div>
+</div>
+
+<!-- PILOT NAME ENTRY -->
+<div id="pilot-name-overlay">
+    <div style="font-size:3em">🚀</div>
+    <h2 style="color:var(--accent);margin:8px 0">Welcome, Pilot!</h2>
+    <p style="opacity:0.6;text-align:center;font-size:0.9em;margin:0 0 4px">Enter your pilot name to appear on the leaderboard.</p>
+    <input id="pilot-input" type="text" maxlength="16" placeholder="YourName" autocomplete="off" spellcheck="false"/>
+    <button class="btn" style="max-width:320px;width:100%" onclick="savePilotName()">🚀 LAUNCH INTO SPACE</button>
+    <p style="font-size:0.68em;opacity:0.3;margin-top:12px">You can change this in Settings.</p>
+</div>
+
+<!-- PASS AND PLAY -->
+<div id="passplay-screen">
+    <div class="menu-card scroll">
+        <h3 style="color:var(--gold)">👥 PASS & PLAY</h3>
+        <p style="font-size:0.8em;opacity:0.55;margin:0 0 14px">Two players — take turns, pass the phone. Best score wins!</p>
+        <div style="margin-bottom:12px">
+            <div style="font-size:0.72em;opacity:0.6;margin-bottom:4px">PLAYER 1 NAME</div>
+            <input id="pp-p1-name" type="text" maxlength="12" placeholder="Player 1" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;padding:10px;border-radius:12px;width:100%;font-size:1em;outline:none;"/>
+        </div>
+        <div style="margin-bottom:16px">
+            <div style="font-size:0.72em;opacity:0.6;margin-bottom:4px">PLAYER 2 NAME</div>
+            <input id="pp-p2-name" type="text" maxlength="12" placeholder="Player 2" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:white;padding:10px;border-radius:12px;width:100%;font-size:1em;outline:none;"/>
+        </div>
+        <button class="btn" onclick="startPassPlay()">🎮 START GAME</button>
+        <button class="btn" style="background:rgba(255,255,255,0.08)" onclick="hidePassPlay()">BACK</button>
+    </div>
+</div>
+
+<!-- PASS AND PLAY TURN BANNER -->
+<div id="passplay-turn-banner">
+    <div style="font-size:3em" id="pp-turn-icon">👤</div>
+    <div id="pp-turn-name" style="font-size:2em;font-weight:900;color:var(--gold)">Player 1</div>
+    <div id="pp-turn-msg" style="font-size:0.9em;opacity:0.65">Get ready — pass the phone!</div>
+    <button class="btn" style="max-width:260px;width:100%;margin-top:8px" id="pp-turn-btn" onclick="ppTurnGo()">▶ START MY TURN</button>
+</div>
+
+<!-- PWA INSTALL BANNER -->
+<div id="pwa-banner">
+    <div style="font-size:0.85em;font-weight:900;color:var(--accent);margin-bottom:4px">📲 Add to Home Screen</div>
+    <div style="font-size:0.72em;opacity:0.65;margin-bottom:10px">Play offline, full screen, like an app!</div>
+    <div style="display:flex;gap:8px;justify-content:center">
+        <button onclick="pwaBannerInstall()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:10px;font-weight:900;cursor:pointer;font-size:0.85em">INSTALL</button>
+        <button onclick="pwaBannerDismiss()" style="background:rgba(255,255,255,0.1);color:white;border:none;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.85em">Later</button>
     </div>
 </div>
 
@@ -557,16 +625,16 @@ function getRankIndex(rp){let idx=0;for(let i=0;i<RANKS.length;i++){if(rp>=RANKS
 
 // ── Community leaderboard data ────────────────────────────────────────────────
 const COMMUNITY_PLAYERS=[
-    {name:'StarPilot_99',  score:418500,rp:6800},{name:'NebulaCrusher',score:387200,rp:6200},
-    {name:'VoidHunter',    score:344600,rp:5800},{name:'GravSurfer',   score:312900,rp:5400},
-    {name:'CometRider',    score:289400,rp:5100},{name:'OrbitalAce',   score:261700,rp:4700},
-    {name:'PlanetSmash',   score:238300,rp:4400},{name:'ZephyrKnight', score:214800,rp:4000},
-    {name:'NullarBreaker', score:193500,rp:3700},{name:'AuroraDrifter',score:171200,rp:3400},
-    {name:'KrathMaster',   score:152600,rp:3100},{name:'Phaedrax',     score:134900,rp:2800},
-    {name:'VortexStar',    score:118300,rp:2500},{name:'SoluxPilot',   score:103700,rp:2200},
-    {name:'OrrathFlyer',   score:89400, rp:1900},{name:'MoteHunter',   score:76100, rp:1600},
-    {name:'VerdisAce',     score:63800, rp:1300},{name:'GravityFlip',  score:51200, rp:1000},
-    {name:'NebulaDancer',  score:39600, rp:700 },{name:'StarSeeker',   score:28300, rp:400 },
+    {name:'Robioty',     score:418500,rp:6800},{name:'xX_nova_Xx',  score:387200,rp:6200},
+    {name:'jake2009',    score:344600,rp:5800},{name:'GravQueen',   score:312900,rp:5400},
+    {name:'tomtom77',    score:289400,rp:5100},{name:'spacecadet1', score:261700,rp:4700},
+    {name:'PlanetMunky', score:238300,rp:4400},{name:'zara_plays',  score:214800,rp:4000},
+    {name:'liam_k',      score:193500,rp:3700},{name:'CosmicMeg',   score:171200,rp:3400},
+    {name:'dr_dropz',    score:152600,rp:3100},{name:'finn2012',    score:134900,rp:2800},
+    {name:'vortex_viv',  score:118300,rp:2500},{name:'SuperSam99',  score:103700,rp:2200},
+    {name:'ellie_m',     score:89400, rp:1900},{name:'bigbadmote',  score:76100, rp:1600},
+    {name:'matticus',    score:63800, rp:1300},{name:'just_here4fun',score:51200, rp:1000},
+    {name:'rookie_ron',  score:39600, rp:700 },{name:'newbie2024',  score:28300, rp:400 },
 ];
 
 // ── Game state ────────────────────────────────────────────────────────────────
@@ -683,7 +751,7 @@ function earnAchievement(id){
     earned[id]=Date.now();
     safeSet('sn_achievements',earned);
     const ach=ACHIEVEMENTS.find(a=>a.id===id);
-    if(ach) showToast(`🏅 Achievement: ${ach.title}!`,'var(--gold)');
+    if(ach){showToast(`🏅 Achievement: ${ach.title}!`,'var(--gold)');playSound('achieve');}
 }
 function checkAchievements(){
     // Called at end of run and at key moments — checks run stats
@@ -829,7 +897,8 @@ function showLeaderboard(){
         const rank=getRankFromRP(p.rp);
         const row=document.createElement('div');row.className='lb-row'+(p.isYou?' lb-you':'');
         const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
-        row.innerHTML=`<div class="lb-pos">${medal}</div><div class="lb-name">${p.isYou?'<b>YOU</b>':p.name}</div><span class="lb-rank-tag" style="color:${rank.color};border-color:${rank.border}">${rank.icon} ${rank.name}</span><div class="lb-score">${p.score.toLocaleString()}</div>`;
+        const displayName=p.isYou?(getPilotName()||'YOU'):'';
+        row.innerHTML=`<div class="lb-pos">${medal}</div><div class="lb-body"><div class="lb-name">${p.isYou?`<b>${displayName}</b>`:p.name}</div><div class="lb-meta"><span class="lb-rank-tag" style="color:${rank.color};border-color:${rank.border}">${rank.icon} ${rank.name}</span><span class="lb-score">${p.score.toLocaleString()}</span></div></div>`;
         list.appendChild(row);
     });
     document.getElementById('leaderboard-screen').style.display='flex';
@@ -906,6 +975,13 @@ const CONSTELLATIONS=[
     {id:'happy_faces',title:'Happy Planets 😊', desc:'Planets show smiley faces — toggle once unlocked', maxLvl:1,baseCost:300,costMult:99},
     {id:'fart_sounds',title:'Planet Gas 💨',    desc:'Planets fart on merge — toggle once unlocked',     maxLvl:1,baseCost:200,costMult:99},
     {id:'cheeky_bum', title:'Cheeky Planets 🍑',desc:'Planets show a cheeky bum — toggle once unlocked', maxLvl:1,baseCost:250,costMult:99},
+    // ── Planet skins — purchasable cosmetic overlays ──
+    {id:'skin_rainbow',title:'Rainbow Skin 🌈',   desc:'Planets cycle through rainbow colours',     maxLvl:1,baseCost:800, costMult:99},
+    {id:'skin_fire',   title:'Fire Skin 🔥',      desc:'Planets flicker with animated flames',      maxLvl:1,baseCost:1200,costMult:99},
+    {id:'skin_ice',    title:'Ice Skin ❄️',       desc:'Planets shimmer with a frozen crystal sheen',maxLvl:1,baseCost:1000,costMult:99},
+    {id:'skin_neon',   title:'Neon Skin 💜',      desc:'Planets pulse with electric neon glow',     maxLvl:1,baseCost:900, costMult:99},
+    {id:'skin_galaxy', title:'Galaxy Skin 🌌',    desc:'Planets swirl with a cosmic nebula pattern',maxLvl:1,baseCost:1500,costMult:99},
+    {id:'skin_gold',   title:'Gold Foil Skin ✨',  desc:'Planets gleam with a premium gold sheen',   maxLvl:1,baseCost:600, costMult:99},
 ];
 function getConstLevels(){return safeGet('sn_const')||{};}
 function getConstLevel(id){return(getConstLevels()[id]||0);}
@@ -917,6 +993,16 @@ function dangerTimeBonus(){return getConstLevel('danger_time')*1000;}
 function happyFacesEnabled(){return getConstLevel('happy_faces')>=1 && (safeGet('sn_cosmetic_toggles')||{}).happy_faces!==false;}
 function fartSoundsEnabled(){return getConstLevel('fart_sounds')>=1 && (safeGet('sn_cosmetic_toggles')||{}).fart_sounds!==false;}
 function cheekyBumEnabled(){return getConstLevel('cheeky_bum')>=1 && (safeGet('sn_cosmetic_toggles')||{}).cheeky_bum!==false;}
+// Planet skin helpers — only one skin active at a time (highest-cost purchased wins, or last toggled on)
+const SKIN_IDS=['skin_rainbow','skin_fire','skin_ice','skin_neon','skin_galaxy','skin_gold'];
+function activeSkin(){
+    const t=safeGet('sn_cosmetic_toggles')||{};
+    // Return the first toggled-on purchased skin
+    for(const id of SKIN_IDS){
+        if(getConstLevel(id)>=1 && t[id]!==false) return id;
+    }
+    return null;
+}
 
 function toggleCosmeticSetting(id){
     const t=safeGet('sn_cosmetic_toggles')||{};
@@ -931,7 +1017,7 @@ function showConstellation(){
     const cv=document.getElementById('const-dust-val');if(cv)cv.innerText=total.toLocaleString();
     const cosmeticToggles=safeGet('sn_cosmetic_toggles')||{};
     // COSMETIC IDs that get a toggle once purchased
-    const cosmeticIds=['happy_faces','fart_sounds','cheeky_bum'];
+    const cosmeticIds=['happy_faces','fart_sounds','cheeky_bum','skin_rainbow','skin_fire','skin_ice','skin_neon','skin_galaxy','skin_gold'];
     CONSTELLATIONS.forEach(c=>{
         const lvl=levels[c.id]||0,maxed=lvl>=c.maxLvl,cost=constCost(c);
         const isCosmetic=cosmeticIds.includes(c.id);
@@ -1013,7 +1099,10 @@ function hideMissions(){document.getElementById('missions-screen').style.display
 // ── Settings ──────────────────────────────────────────────────────────────────
 function loadSettings(){const s=safeGet('sn_settings');if(s)settings={...settings,...s};['sfx','shake','particles','haptic'].forEach(k=>{const el=document.getElementById(k+'-toggle');if(el)el.className='toggle'+(settings[k]?' on':'');});}
 function toggleSetting(key){settings[key]=!settings[key];safeSet('sn_settings',settings);const el=document.getElementById(key+'-toggle');if(el)el.className='toggle'+(settings[key]?' on':'');}
-function showSettings(){document.getElementById('settings-menu').style.display='flex';}
+function showSettings(){
+    document.getElementById('settings-menu').style.display='flex';
+    updatePilotNameDisplay();
+}
 function hideSettings(){document.getElementById('settings-menu').style.display='none';}
 function showHowToPlay(){document.getElementById('how-to-play').style.display='flex';}
 function hideHowToPlay(){document.getElementById('how-to-play').style.display='none';}
@@ -1053,6 +1142,17 @@ function playSound(type){
         if(type==='rank_down'){osc.type='sine';osc.frequency.setValueAtTime(400,now);osc.frequency.setValueAtTime(280,now+0.2);osc.frequency.setValueAtTime(180,now+0.4);gain.gain.setValueAtTime(0.12,now);gain.gain.exponentialRampToValueAtTime(0.001,now+0.5);osc.start();osc.stop(now+0.5);}
         if(type==='save'){osc.type='sine';osc.frequency.setValueAtTime(300,now);osc.frequency.exponentialRampToValueAtTime(900,now+0.3);gain.gain.setValueAtTime(0.18,now);gain.gain.exponentialRampToValueAtTime(0.001,now+0.4);osc.start();osc.stop(now+0.4);}
         if(type==='milestone'){osc.type='square';osc.frequency.setValueAtTime(500,now);osc.frequency.exponentialRampToValueAtTime(700,now+0.2);gain.gain.setValueAtTime(0.08,now);gain.gain.exponentialRampToValueAtTime(0.001,now+0.3);osc.start();osc.stop(now+0.3);}
+        if(type==='achieve'){
+            // 3-note ascending chime — C E G
+            [523,659,784].forEach((freq,i)=>{
+                const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+                o.type='sine';o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);
+                const st=now+i*0.18;
+                g.gain.setValueAtTime(0,st);g.gain.linearRampToValueAtTime(0.18,st+0.04);
+                g.gain.exponentialRampToValueAtTime(0.001,st+0.35);
+                o.start(st);o.stop(st+0.36);
+            });
+        }
     }catch(e){}
 }
 
@@ -1264,6 +1364,69 @@ function drawPlanet(ctx,x,y,lvl,angle,alpha=1,highlighted=false){
         ctx.quadraticCurveTo(bs*0.06, bs*0.12, 0, bs*0.52);
         ctx.stroke();
 
+        ctx.restore();
+    }
+    // ── Planet skin overlay ───────────────────────────────────────────────────
+    const skin=activeSkin();
+    if(skin&&!d.singularity&&!d.blackhole){
+        const t=Date.now()/1000;
+        ctx.save();
+        // Clip to planet circle so skin stays inside
+        ctx.beginPath();ctx.arc(0,0,d.r,0,Math.PI*2);ctx.clip();
+        if(skin==='skin_rainbow'){
+            // Animated hue cycle — colour rotates over time
+            const hue=(t*60+lvl*36)%360;
+            ctx.globalAlpha=alpha*0.35;
+            ctx.fillStyle=`hsl(${hue},100%,60%)`;
+            ctx.fillRect(-d.r,-d.r,d.r*2,d.r*2);
+        } else if(skin==='skin_fire'){
+            // Flickering warm glow at base of planet
+            const flicker=0.25+0.15*Math.sin(t*12+lvl);
+            const fg=ctx.createRadialGradient(0,d.r*0.3,0,0,d.r*0.3,d.r*1.1);
+            fg.addColorStop(0,`rgba(255,220,60,${flicker+0.1})`);
+            fg.addColorStop(0.4,`rgba(255,80,0,${flicker})`);
+            fg.addColorStop(1,'rgba(255,0,0,0)');
+            ctx.globalAlpha=alpha*0.55;ctx.fillStyle=fg;ctx.fillRect(-d.r,-d.r,d.r*2,d.r*2);
+        } else if(skin==='skin_ice'){
+            // Cool blue-white shimmer
+            const shine=0.15+0.1*Math.sin(t*4+lvl*1.5);
+            const ig=ctx.createRadialGradient(-d.r*0.35,-d.r*0.35,0,0,0,d.r);
+            ig.addColorStop(0,`rgba(200,240,255,${shine+0.3})`);
+            ig.addColorStop(0.5,`rgba(100,200,255,${shine})`);
+            ig.addColorStop(1,'rgba(0,100,200,0)');
+            ctx.globalAlpha=alpha*0.45;ctx.fillStyle=ig;ctx.fillRect(-d.r,-d.r,d.r*2,d.r*2);
+            // Frost lines
+            ctx.globalAlpha=alpha*0.12;ctx.strokeStyle='white';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+            for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(-d.r,(-d.r/2)+i*d.r*0.5);ctx.lineTo(d.r,(-d.r/3)+i*d.r*0.4);ctx.stroke();}
+            ctx.setLineDash([]);
+        } else if(skin==='skin_neon'){
+            // Pulsing coloured rim
+            const pulse=0.4+0.4*Math.sin(t*5+lvl);
+            const hue=(lvl*36)%360;
+            ctx.globalAlpha=alpha*pulse;
+            ctx.strokeStyle=`hsl(${hue},100%,70%)`;ctx.lineWidth=4;ctx.setLineDash([]);
+            ctx.beginPath();ctx.arc(0,0,d.r*0.88,0,Math.PI*2);ctx.stroke();
+            ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,d.r*0.7,0,Math.PI*2);ctx.stroke();
+        } else if(skin==='skin_galaxy'){
+            // Swirling nebula of dots
+            ctx.globalAlpha=alpha*0.4;
+            for(let i=0;i<8;i++){
+                const a=t*0.8+(Math.PI*2/8)*i;
+                const r2=d.r*(0.3+0.35*(i%3)*0.3);
+                const hue=(t*30+i*45)%360;
+                ctx.fillStyle=`hsl(${hue},80%,70%)`;
+                ctx.beginPath();ctx.arc(Math.cos(a)*r2,Math.sin(a)*r2,Math.max(1.5,d.r*0.08),0,Math.PI*2);ctx.fill();
+            }
+        } else if(skin==='skin_gold'){
+            // Shiny gold foil gradient
+            const gleam=0.15+0.1*Math.sin(t*3+lvl);
+            const gg=ctx.createLinearGradient(-d.r,-d.r,d.r,d.r);
+            gg.addColorStop(0,`rgba(255,220,80,${gleam+0.25})`);
+            gg.addColorStop(0.4,`rgba(255,180,20,${gleam})`);
+            gg.addColorStop(0.7,`rgba(200,140,0,${gleam+0.1})`);
+            gg.addColorStop(1,`rgba(255,210,60,${gleam+0.15})`);
+            ctx.globalAlpha=alpha*0.5;ctx.fillStyle=gg;ctx.fillRect(-d.r,-d.r,d.r*2,d.r*2);
+        }
         ctx.restore();
     }
     ctx.restore();
@@ -1629,7 +1792,8 @@ function performWormhole(x,y){
     wormholeActive=true;
     // Freeze physics briefly for dramatic effect
     if(engine)engine.enabled=false;
-    playSound('blackhole');screenShake(18,500);haptic(80);
+    playSound('blackhole');screenShake(18,500);
+    if(settings.haptic&&navigator.vibrate)navigator.vibrate([80,60,80,60,120]);
     showToast('🌀 WORMHOLE! Space tears open…','#f472b6');
     earnAchievement('wormhole');
 
@@ -1823,7 +1987,13 @@ function gameOver(){
     document.getElementById('evo-bar').style.display='none';
     document.getElementById('session-bar-wrap').style.display='none';
     setNebulaMood('normal');safeSet('sn_last_played',Date.now());
-    checkAchievements(); // evaluate all end-of-run achievements
+    checkAchievements();
+    // Pass & Play: redirect end-of-game flow
+    if(ppActive){ppEndTurn(score);return;}
+    // PWA: show banner after 2nd game if not dismissed
+    if(totalGamesEver()===2&&_pwaPrompt&&!safeGet('sn_pwa_dismissed')){
+        setTimeout(()=>document.getElementById('pwa-banner').style.display='block',1500);
+    }
     showEndScreen(dustEarned,wasNewBest);
 }
 
@@ -2128,10 +2298,127 @@ window.addEventListener('pointerup',e=>{
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameStarted&&!isPaused)togglePause();});
 
+// ── Pilot name ────────────────────────────────────────────────────────────────
+function getPilotName(){return safeGet('sn_pilot_name')||'';}
+function savePilotName(){
+    const input=document.getElementById('pilot-input');
+    const name=(input.value||'').trim().slice(0,16)||'Pilot';
+    safeSet('sn_pilot_name',name);
+    document.getElementById('pilot-name-overlay').classList.remove('active');
+    updatePilotNameDisplay();
+}
+function saveSettingsPilotName(){
+    const input=document.getElementById('settings-pilot-input');
+    const name=(input.value||'').trim().slice(0,16);
+    if(!name)return;
+    safeGet('sn_pilot_name'); // ensure exists
+    safeSet('sn_pilot_name',name);
+    showToast('Pilot name saved!','var(--success)');
+    updatePilotNameDisplay();
+}
+function updatePilotNameDisplay(){
+    const name=getPilotName();
+    const el=document.getElementById('pilot-name-val');
+    if(el)el.innerText=name||'—';
+    const si=document.getElementById('settings-pilot-input');
+    if(si)si.value=name;
+}
+function checkPilotName(){
+    if(!getPilotName()){
+        document.getElementById('pilot-name-overlay').classList.add('active');
+        setTimeout(()=>{const i=document.getElementById('pilot-input');if(i)i.focus();},300);
+    }
+    updatePilotNameDisplay();
+}
+// Allow Enter key on pilot name inputs
+document.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+        const ov=document.getElementById('pilot-name-overlay');
+        if(ov&&ov.classList.contains('active')){savePilotName();return;}
+    }
+});
+
+// ── Pass & Play ───────────────────────────────────────────────────────────────
+let ppScores=[0,0], ppCurrentPlayer=0, ppTurnsLeft=0, ppActive=false;
+const PP_TURNS_PER_PLAYER=1; // each player plays one full game
+function showPassPlay(){document.getElementById('passplay-screen').style.display='flex';}
+function hidePassPlay(){document.getElementById('passplay-screen').style.display='none';}
+function startPassPlay(){
+    const p1=(document.getElementById('pp-p1-name').value||'Player 1').trim().slice(0,12);
+    const p2=(document.getElementById('pp-p2-name').value||'Player 2').trim().slice(0,12);
+    safeSet('sn_pp_names',[p1,p2]);
+    ppScores=[0,0];ppCurrentPlayer=0;ppActive=true;ppTurnsLeft=PP_TURNS_PER_PLAYER;
+    hidePassPlay();
+    showPPTurnBanner(0,'Get ready!');
+}
+function showPPTurnBanner(playerIdx,msg){
+    const names=safeGet('sn_pp_names')||['Player 1','Player 2'];
+    const banner=document.getElementById('passplay-turn-banner');
+    document.getElementById('pp-turn-icon').innerText=playerIdx===0?'👤':'👥';
+    document.getElementById('pp-turn-name').innerText=names[playerIdx]+"'s Turn";
+    document.getElementById('pp-turn-msg').innerText=msg;
+    banner.style.display='flex';
+}
+function ppTurnGo(){
+    document.getElementById('passplay-turn-banner').style.display='none';
+    startGame();
+}
+function ppEndTurn(finalScore){
+    // Called from gameOver when ppActive
+    const names=safeGet('sn_pp_names')||['Player 1','Player 2'];
+    ppScores[ppCurrentPlayer]=finalScore;
+    if(ppCurrentPlayer===0){
+        // Switch to player 2
+        ppCurrentPlayer=1;
+        showPPTurnBanner(1,`${names[0]} scored ${finalScore.toLocaleString()}. Pass the phone!`);
+    } else {
+        // Both played — show result
+        ppActive=false;
+        const winner=ppScores[0]>ppScores[1]?0:(ppScores[1]>ppScores[0]?1:-1);
+        const resultMsg=winner===-1?`It's a tie! ${ppScores[0].toLocaleString()} each 🤝`
+            :`${names[winner]} wins! 🏆\n${names[0]}: ${ppScores[0].toLocaleString()} · ${names[1]}: ${ppScores[1].toLocaleString()}`;
+        setTimeout(()=>{
+            const banner=document.getElementById('passplay-turn-banner');
+            document.getElementById('pp-turn-icon').innerText=winner===-1?'🤝':'🏆';
+            document.getElementById('pp-turn-name').innerText=winner===-1?'TIE GAME!':`${names[winner]} Wins!`;
+            document.getElementById('pp-turn-msg').innerText=winner===-1?`Both scored ${ppScores[0].toLocaleString()}`:`${names[0]}: ${ppScores[0].toLocaleString()} · ${names[1]}: ${ppScores[1].toLocaleString()}`;
+            const btn=document.getElementById('pp-turn-btn');
+            btn.innerText='🏠 Home';btn.onclick=()=>{
+                banner.style.display='none';
+                document.getElementById('end-screen').style.display='none';
+                document.getElementById('home-screen').style.display='flex';
+                btn.innerText='▶ START MY TURN';
+                btn.onclick=ppTurnGo;
+            };
+            banner.style.display='flex';
+        },800);
+    }
+}
+
+// ── PWA install prompt ────────────────────────────────────────────────────────
+let _pwaPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();_pwaPrompt=e;
+    // Show banner after 2 games if not already installed
+    const games=totalGamesEver();
+    if(games>=2&&!safeGet('sn_pwa_dismissed')){
+        setTimeout(()=>document.getElementById('pwa-banner').style.display='block',2000);
+    }
+});
+function pwaBannerInstall(){
+    document.getElementById('pwa-banner').style.display='none';
+    if(_pwaPrompt){_pwaPrompt.prompt();_pwaPrompt.userChoice.then(()=>{_pwaPrompt=null;});}
+}
+function pwaBannerDismiss(){
+    document.getElementById('pwa-banner').style.display='none';
+    safeSet('sn_pwa_dismissed',true);
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadSettings();checkDailyBonus();checkIdleDust();initMissions();loadStats();
 updateDailyRunUI();
 const _ss=safeGet('sn_streak')||{count:0};updateStreakDisplay(_ss.count,false);
+checkPilotName(); // show name entry on first launch
 </script>
 </body>
 </html>
