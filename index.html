@@ -17,7 +17,7 @@
     <!-- Android / Chrome home screen -->
     <meta name="mobile-web-app-capable" content="yes">
 
-    <title>Supernova: Infinity v12.0</title>
+    <title>Supernova: Infinity v13.0</title>
 
     <!-- Service worker registration -->
     <script>
@@ -186,11 +186,25 @@
         /* Streak pulse when incremented */
         #streak-val.new{animation:streakPop 0.5s ease;}
         @keyframes streakPop{0%{transform:scale(1)}50%{transform:scale(1.5);color:#fff}100%{transform:scale(1)}}
-    </style>
+        /* Planet name flash on merge */
+        #planet-name-flash{position:fixed;top:32%;left:50%;transform:translateX(-50%);font-size:1.1em;font-weight:900;pointer-events:none;opacity:0;z-index:1099;text-align:center;white-space:nowrap;transition:opacity 0.15s;text-shadow:0 0 12px currentColor;}
+        /* Accurate drop streak indicator */
+        #drop-streak{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);font-size:0.7em;font-weight:900;color:var(--success);pointer-events:none;opacity:0;z-index:1099;transition:opacity 0.3s;text-shadow:0 0 8px var(--success);}
+        /* Achievement badge */
+        .ach-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border-radius:14px;padding:10px 14px;margin-bottom:6px;}
+        .ach-row.earned{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);}
+        .ach-icon{font-size:1.5em;width:32px;text-align:center;flex-shrink:0;}
+        .ach-info{flex:1;text-align:left;}
+        .ach-title{font-weight:900;font-size:0.85em;}
+        .ach-desc{font-size:0.68em;opacity:0.5;margin-top:2px;}
+        .ach-locked{opacity:0.3;}
+        #achievements-screen{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:2500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
 </head>
 <body>
 <div id="nebula"></div>
 <div id="screen-flash"></div>
+<div id="planet-name-flash"></div>
+<div id="drop-streak">🎯 ACCURATE DROP STREAK!</div>
 <div id="combo-popup">CHAIN x2</div>
 <div id="new-best">🏆 NEW BEST!</div>
 <div id="near-miss-banner">🛡️ NEAR MISS SAVE!</div>
@@ -210,7 +224,10 @@
 <!-- TOP BAR -->
 <div id="top-bar">
     <button class="icon-btn" onclick="togglePause()">⚙️</button>
-    <div id="score-label">0</div>
+    <div style="flex:1;text-align:center;">
+        <div id="score-label">0</div>
+        <div id="pb-label" style="font-size:0.42em;font-weight:700;opacity:0.35;color:var(--accent);margin-top:-4px;display:none">PB: <span id="pb-val">0</span></div>
+    </div>
     <button class="icon-btn" onclick="quickRestart()" id="quick-restart-btn" style="display:none" title="Quick Restart">🔄</button>
     <div id="stardust-hud" style="display:none">✨ <span id="dust-val">0</span></div>
 </div>
@@ -267,6 +284,7 @@
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showMissions()">📋 DAILY MISSIONS</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showConstellation()">🌌 CONSTELLATION</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showHowToPlay()">❓ HOW TO PLAY</button>
+        <button class="btn" style="background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:var(--gold)" onclick="showAchievements()">🏅 ACHIEVEMENTS</button>
         <button class="btn" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.4);color:var(--wind)" onclick="replayTutorial()">🎓 REPLAY TUTORIAL</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showSettings()">⚙️ SETTINGS</button>
         <button id="tip-jar-btn" onclick="openTipJar()">☕ Support the Dev — Tip Jar</button>
@@ -315,7 +333,7 @@
         <div class="toggle-row"><span>Screen Shake</span><button class="toggle on" id="shake-toggle" onclick="toggleSetting('shake')"></button></div>
         <div class="toggle-row"><span>Particles</span><button class="toggle on" id="particles-toggle" onclick="toggleSetting('particles')"></button></div>
         <div class="toggle-row"><span>Haptic Feedback</span><button class="toggle on" id="haptic-toggle" onclick="toggleSetting('haptic')"></button></div>
-        <p style="font-size:0.7em;opacity:0.4;margin:10px 0 2px">Supernova: Infinity v12.0 · Built with ❤️</p>
+        <p style="font-size:0.7em;opacity:0.4;margin:10px 0 2px">Supernova: Infinity v13.0 · Built with ❤️</p>
         <button class="btn" onclick="hideSettings()">CLOSE</button>
     </div>
 </div>
@@ -374,6 +392,11 @@
             <div id="end-new-best-banner" style="display:none;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:6px;margin-top:8px;color:var(--gold);font-weight:900;text-align:center;">🏆 NEW PERSONAL BEST!</div>
             <div id="daily-run-result" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:6px;margin-top:8px;color:var(--gold);font-size:0.82em;font-weight:700;text-align:center;"></div>
         </div>
+        <!-- Merge chart -->
+        <div id="merge-chart-section" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:12px;margin:8px 0;">
+            <div style="font-size:0.65em;font-weight:900;color:var(--accent);letter-spacing:1px;margin-bottom:8px">📊 MERGES BY PLANET</div>
+            <div id="merge-chart"></div>
+        </div>
         <!-- Card B: The Career -->
         <div id="career-card" style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:16px;padding:12px;margin:8px 0;display:none;">
             <div style="font-size:0.65em;font-weight:900;color:var(--accent);letter-spacing:1px;margin-bottom:8px">🏆 THE CAREER</div>
@@ -383,6 +406,16 @@
         <button class="btn btn-cta" onclick="endScreenPlay()">🚀 PLAY AGAIN</button>
         <button class="btn" style="background:rgba(56,189,248,0.25);border:1px solid rgba(56,189,248,0.4)" onclick="shareScore()">📤 SHARE SCORE</button>
         <button class="btn" style="background:rgba(255,255,255,0.1)" onclick="endScreenHome()">🏠 HOME</button>
+    </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div id="achievements-screen">
+    <div class="menu-card scroll">
+        <h3 style="color:var(--gold)">🏅 ACHIEVEMENTS</h3>
+        <p style="font-size:0.72em;opacity:0.45;margin:0 0 12px">Milestones from your journey through the cosmos.</p>
+        <div id="achievements-list"></div>
+        <button class="btn" onclick="hideAchievements()">CLOSE</button>
     </div>
 </div>
 
@@ -436,6 +469,11 @@ const BUG_REPORT_EMAIL = 'your@email.com';                   // support email
 
 /* -------------------------------------------------------------
    VERSION HISTORY
+   v13.0  Achievements (12 badges, sn_achievements storage),
+          Merge chart on end screen, planet name flash on merge,
+          Accurate drop streak bonus, personal best top-bar label,
+          Comet trail colour tied to last choice made,
+          Leaderboard scores raised (top ~418k)
    v12.0  Bug fix: CHARGE_TIME/COMET_INTERVAL/ANOMALY_INTERVAL
           constants were lost in header restructure, causing
           ReferenceError on load — all restored to constants block.
@@ -518,16 +556,16 @@ function getRankIndex(rp){let idx=0;for(let i=0;i<RANKS.length;i++){if(rp>=RANKS
 
 // ── Community leaderboard data ────────────────────────────────────────────────
 const COMMUNITY_PLAYERS=[
-    {name:'StarPilot_99',  score:142800,rp:6800},{name:'NebulaCrusher',score:128500,rp:6200},
-    {name:'VoidHunter',    score:115400,rp:5800},{name:'GravSurfer',   score:104200,rp:5400},
-    {name:'CometRider',    score:98700, rp:5100},{name:'OrbitalAce',   score:89300, rp:4700},
-    {name:'PlanetSmash',   score:81600, rp:4400},{name:'ZephyrKnight', score:74100, rp:4000},
-    {name:'NullarBreaker', score:67800, rp:3700},{name:'AuroraDrifter',score:61500, rp:3400},
-    {name:'KrathMaster',   score:54200, rp:3100},{name:'Phaedrax',     score:47900, rp:2800},
-    {name:'VortexStar',    score:42300, rp:2500},{name:'SoluxPilot',   score:37100, rp:2200},
-    {name:'OrrathFlyer',   score:31800, rp:1900},{name:'MoteHunter',   score:26400, rp:1600},
-    {name:'VerdisAce',     score:21700, rp:1300},{name:'GravityFlip',  score:17200, rp:1000},
-    {name:'NebulaDancer',  score:13100, rp:700 },{name:'StarSeeker',   score:8900,  rp:400 },
+    {name:'StarPilot_99',  score:418500,rp:6800},{name:'NebulaCrusher',score:387200,rp:6200},
+    {name:'VoidHunter',    score:344600,rp:5800},{name:'GravSurfer',   score:312900,rp:5400},
+    {name:'CometRider',    score:289400,rp:5100},{name:'OrbitalAce',   score:261700,rp:4700},
+    {name:'PlanetSmash',   score:238300,rp:4400},{name:'ZephyrKnight', score:214800,rp:4000},
+    {name:'NullarBreaker', score:193500,rp:3700},{name:'AuroraDrifter',score:171200,rp:3400},
+    {name:'KrathMaster',   score:152600,rp:3100},{name:'Phaedrax',     score:134900,rp:2800},
+    {name:'VortexStar',    score:118300,rp:2500},{name:'SoluxPilot',   score:103700,rp:2200},
+    {name:'OrrathFlyer',   score:89400, rp:1900},{name:'MoteHunter',   score:76100, rp:1600},
+    {name:'VerdisAce',     score:63800, rp:1300},{name:'GravityFlip',  score:51200, rp:1000},
+    {name:'NebulaDancer',  score:39600, rp:700 },{name:'StarSeeker',   score:28300, rp:400 },
 ];
 
 // ── Game state ────────────────────────────────────────────────────────────────
@@ -548,6 +586,15 @@ let reviveUsed=false; // near miss save
 let doubleScoreMerges=0; // comet double-score power: merges remaining at ×2
 let settings={sfx:true,shake:true,particles:true,haptic:true};
 let _sessionMilestoneIdx=0; // index into SESSION_MILESTONES
+// Feature: accurate drop streak
+let _dropStreakCount=0;       // consecutive accurate drops
+let _lastDropGhostY=0;        // ghost Y at time of drop (set on pointerup)
+// Feature: merge chart
+let _sMergesByLevel=new Array(10).fill(0); // count of merges producing each planet level
+// Feature: comet trail colour
+let _cometTrailHue=190;       // HSL hue — changes with comet choice
+// Feature: personal best score line
+// (uses _statsCache.best — no extra var needed)
 
 // ── Planet data ───────────────────────────────────────────────────────────────
 // Levels 0-8 scale gradually. Level 9 (Vortex) is a compact Black Hole —
@@ -612,7 +659,58 @@ function updateNextUnlockHint(){
     }
 }
 
-// ── Idle Stardust ─────────────────────────────────────────────────────────────
+// ── Achievements ──────────────────────────────────────────────────────────────
+const ACHIEVEMENTS=[
+    {id:'first_merge',   icon:'💥', title:'First Contact',      desc:'Perform your first merge'},
+    {id:'reach_auroris', icon:'🌟', title:'Golden Orbit',        desc:'Merge up to Auroris (level 3)'},
+    {id:'reach_orrath',  icon:'💫', title:'Into the Deep',        desc:'Merge up to Orrath (level 5)'},
+    {id:'reach_nullar',  icon:'🕳️', title:'Event Horizon',       desc:'Merge up to Nullar (level 8)'},
+    {id:'reach_vortex',  icon:'🌀', title:'Singularity',          desc:'Create a Vortex Black Hole'},
+    {id:'wormhole',      icon:'🌌', title:'Wormhole Pioneer',     desc:'Trigger a Wormhole event'},
+    {id:'combo_5',       icon:'⛓️', title:'Chain Reaction',       desc:'Reach a x5 combo chain'},
+    {id:'score_50k',     icon:'🚀', title:'Deep Space Explorer',  desc:'Score 50,000 in one run'},
+    {id:'score_100k',    icon:'👑', title:'Cosmic Legend',        desc:'Score 100,000 in one run'},
+    {id:'daily_3',       icon:'📅', title:'Creature of Habit',    desc:'Play 3 days in a row'},
+    {id:'flip_5',        icon:'🔄', title:'Gravity Master',       desc:'Flip gravity 5 times in one run'},
+    {id:'glitter_merge', icon:'✨', title:'Star Dust',            desc:'Use a Glitter planet wildcard'},
+];
+
+function getAchievements(){return safeGet('sn_achievements')||{};}
+function earnAchievement(id){
+    const earned=getAchievements();
+    if(earned[id])return; // already have it
+    earned[id]=Date.now();
+    safeSet('sn_achievements',earned);
+    const ach=ACHIEVEMENTS.find(a=>a.id===id);
+    if(ach) showToast(`🏅 Achievement: ${ach.title}!`,'var(--gold)');
+}
+function checkAchievements(){
+    // Called at end of run and at key moments — checks run stats
+    if(_sMerges>=1)                              earnAchievement('first_merge');
+    if(_sBestPlanet>=3)                          earnAchievement('reach_auroris');
+    if(_sBestPlanet>=5)                          earnAchievement('reach_orrath');
+    if(_sBestPlanet>=8)                          earnAchievement('reach_nullar');
+    if(_sBestPlanet>=9)                          earnAchievement('reach_vortex');
+    if(_sMaxCombo>=5)                            earnAchievement('combo_5');
+    if(score>=50000)                             earnAchievement('score_50k');
+    if(score>=100000)                            earnAchievement('score_100k');
+    if(_sFlips>=5)                               earnAchievement('flip_5');
+    const streak=safeGet('sn_streak')||{count:0};
+    if(streak.count>=3)                          earnAchievement('daily_3');
+}
+function showAchievements(){
+    const list=document.getElementById('achievements-list');list.innerHTML='';
+    const earned=getAchievements();
+    ACHIEVEMENTS.forEach(a=>{
+        const has=!!earned[a.id];
+        const row=document.createElement('div');
+        row.className='ach-row'+(has?' earned':'');
+        row.innerHTML=`<div class="ach-icon ${has?'':'ach-locked'}">${has?a.icon:'🔒'}</div><div class="ach-info"><div class="ach-title ${has?'':'ach-locked'}">${a.title}</div><div class="ach-desc">${a.desc}${has?' ✓':''}</div></div>`;
+        list.appendChild(row);
+    });
+    document.getElementById('achievements-screen').style.display='flex';
+}
+function hideAchievements(){document.getElementById('achievements-screen').style.display='none';}
 function checkIdleDust(){
     const last=safeGet('sn_last_played');
     const now=Date.now();
@@ -927,7 +1025,7 @@ function haptic(ms=10){if(settings.haptic&&navigator.vibrate)navigator.vibrate(m
 function reportBug(){
     const bc=engine?Composite.allBodies(engine.world).filter(b=>!b.isStatic).length:0;
     const state={version:'v10.0',timestamp:new Date().toISOString(),score,sessionDust,gamesPlayed,isFlipped,isRankedMode,isDailyRun,bc,anomaly:anomaly?anomaly.type:'none',userAgent:navigator.userAgent,screenSize:`${width}x${height}`};
-    window.location.href=`mailto:${BUG_REPORT_EMAIL}?subject=${encodeURIComponent('Supernova Bug v12.0')}&body=${encodeURIComponent('Describe bug:\n\n'+JSON.stringify(state,null,2))}`;
+    window.location.href=`mailto:${BUG_REPORT_EMAIL}?subject=${encodeURIComponent('Supernova Bug v13.0')}&body=${encodeURIComponent('Describe bug:\n\n'+JSON.stringify(state,null,2))}`;
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -1139,18 +1237,32 @@ function drawPlanet(ctx,x,y,lvl,angle,alpha=1,highlighted=false){
         ctx.fillStyle='rgba(0,0,0,0.7)';ctx.beginPath();ctx.arc(-fs*0.38,-fs*0.1,fs*0.18,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(fs*0.38,-fs*0.1,fs*0.18,0,Math.PI*2);ctx.fill();
         ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=fs*0.18;ctx.lineCap='round';ctx.beginPath();ctx.arc(0,fs*0.1,fs*0.48,0.15*Math.PI,0.85*Math.PI);ctx.stroke();ctx.restore();
     }
-    // 🍑 Cheeky bum — two round cheeks with a centre line
+    // 🍑 Cheeky bum — clearly two round cheeks with a strong centre crack
     if(cheekyBumEnabled()&&!d.singularity&&!d.blackhole&&d.r>=14){
-        ctx.save();ctx.globalAlpha=alpha*0.82;
-        const bs=d.r*0.42; // scale relative to planet size
-        // Left cheek
-        ctx.fillStyle='rgba(0,0,0,0.55)';
-        ctx.beginPath();ctx.ellipse(-bs*0.28,bs*0.05,bs*0.36,bs*0.42,0.1,0,Math.PI*2);ctx.fill();
-        // Right cheek
-        ctx.beginPath();ctx.ellipse(bs*0.28,bs*0.05,bs*0.36,bs*0.42,-0.1,0,Math.PI*2);ctx.fill();
-        // Cheeky crack — short curved line between the cheeks
-        ctx.strokeStyle='rgba(0,0,0,0.65)';ctx.lineWidth=Math.max(1.5,bs*0.13);ctx.lineCap='round';
-        ctx.beginPath();ctx.moveTo(0,-bs*0.28);ctx.quadraticCurveTo(bs*0.08,bs*0.12,0,bs*0.48);ctx.stroke();
+        ctx.save();ctx.globalAlpha=alpha*0.88;
+        const bs=d.r*0.52; // overall bum scale
+
+        // Clip to a rounded-rect bounding box so cheeks don't overflow planet edge
+        ctx.beginPath();
+        ctx.arc(-bs*0.26, bs*0.04, bs*0.46, 0, Math.PI*2); // left cheek circle
+        ctx.arc( bs*0.26, bs*0.04, bs*0.46, 0, Math.PI*2); // right cheek circle
+        ctx.clip();
+
+        // Left cheek — filled circle
+        ctx.fillStyle='rgba(0,0,0,0.52)';
+        ctx.beginPath();ctx.arc(-bs*0.26, bs*0.04, bs*0.45, 0, Math.PI*2);ctx.fill();
+        // Right cheek — filled circle
+        ctx.beginPath();ctx.arc( bs*0.26, bs*0.04, bs*0.45, 0, Math.PI*2);ctx.fill();
+
+        // Strong crack — thick dark line straight down the middle
+        ctx.strokeStyle='rgba(0,0,0,0.78)';
+        ctx.lineWidth=Math.max(2, bs*0.18);
+        ctx.lineCap='round';
+        ctx.beginPath();
+        ctx.moveTo(0, -bs*0.38);
+        ctx.quadraticCurveTo(bs*0.06, bs*0.12, 0, bs*0.52);
+        ctx.stroke();
+
         ctx.restore();
     }
     ctx.restore();
@@ -1235,6 +1347,10 @@ function performGlitterMerge(glitterBody, targetBody){
     Composite.remove(engine.world,[glitterBody,targetBody]);
     spawn(mid.x,mid.y,nl);
     _sMerges++;_sBestPlanet=Math.max(_sBestPlanet,nl);
+    _sMergesByLevel[Math.min(nl,9)]++;
+    earnAchievement('first_merge');
+    earnAchievement('glitter_merge');
+    if(nl>=3) earnAchievement('reach_auroris');
 }
 
 function performMerge(a,b){
@@ -1291,9 +1407,29 @@ function performMerge(a,b){
     spawn(mid.x,mid.y,nl);
     if(_statsCache&&nl>_statsCache.discovered){_statsCache.discovered=nl;safeSet('sn_v10',_statsCache);}
     _sMerges++;_sMaxCombo=Math.max(_sMaxCombo,comboCount);_sBestPlanet=Math.max(_sBestPlanet,nl);
+    _sMergesByLevel[Math.min(nl,9)]++;   // track for end-of-run chart
+    flashPlanetName(nl);                  // flash the new planet name
+    earnAchievement('first_merge');
+    if(nl>=3) earnAchievement('reach_auroris');
+    if(nl>=5) earnAchievement('reach_orrath');
+    if(nl>=8) earnAchievement('reach_nullar');
+    if(nl>=9) earnAchievement('reach_vortex');
+    if(_sMaxCombo>=5) earnAchievement('combo_5');
     trackMission('merges',_sMerges);trackMission('combo',_sMaxCombo);trackMission('score',score);trackMission('dust',sessionDust);
 }
 function flashNewBest(){const el=document.getElementById('new-best');el.style.opacity='1';el.style.transition='opacity 0.3s';setTimeout(()=>{el.style.transition='opacity 1s';el.style.opacity='0';},1800);}
+
+// Flash the name of the newly merged planet briefly on screen
+function flashPlanetName(lvl){
+    if(lvl<2)return; // only for Krath and above — not every Mote merge
+    const pd=PLANET_DATA[Math.min(lvl,9)];
+    const el=document.getElementById('planet-name-flash');
+    el.innerText=pd.name+'!';
+    el.style.color=pd.color;
+    el.style.opacity='1';
+    clearTimeout(el._t);
+    el._t=setTimeout(()=>{el.style.opacity='0';},900);
+}
 function updateComboMeter(){
     const label=document.getElementById('combo-label'),bar=document.getElementById('combo-bar');
     if(comboCount<=1){label.style.opacity='0';bar.style.width='0%';bar.style.background='var(--gold)';return;}
@@ -1409,17 +1545,18 @@ function cometChoice(type){
     // Resume physics
     if(gameStarted){isPaused=false;engine.enabled=true;scheduleComet();scheduleAnomaly();}
     if(type==='vacuum'){
-        // Delete all Level 0 planets
         const toRemove=Composite.allBodies(engine.world).filter(b=>!b.isStatic&&b.plugin?.lvl===0);
         toRemove.forEach(b=>{createExplosion(b.position.x,b.position.y,PLANET_DATA[0].color);Composite.remove(engine.world,b);});
         showToast(`🌀 Vacuum! Removed ${toRemove.length} tiny planets`,'var(--danger)');
-        haptic(30);
+        haptic(30);_cometTrailHue=0; // red trail
     } else if(type==='gravity'){
         gravityCharge=CHARGE_TIME;
         showToast('🌀 Gravity Surge! Flip recharged!','var(--gold)');haptic(30);
+        _cometTrailHue=48; // gold trail
     } else if(type==='double'){
         doubleScoreMerges=3;
         showToast('✨ Double Score! Next 3 merges ×2!','var(--accent)');haptic(30);
+        _cometTrailHue=195; // cyan trail
     }
 }
 function _dismissComet(){comet=null;cometTail=[];const btn=document.getElementById('comet-btn');btn.style.display='none';btn.style.pointerEvents='none';}
@@ -1429,7 +1566,7 @@ function drawComet(ctx){
     comet.x+=comet.vx;comet.y+=comet.vy;cometTail.push({x:comet.x,y:comet.y});if(cometTail.length>32)cometTail.shift();
     if(comet.x<-60||comet.x>width+60||comet.y<-60||comet.y>PLAY_H+60){dismissComet();return;}
     updateCometBtn();
-    for(let i=0;i<cometTail.length-1;i++){const t=i/cometTail.length;ctx.save();ctx.globalAlpha=t*0.6;ctx.strokeStyle=`hsl(${190+t*40},100%,${60+t*30}%)`;ctx.lineWidth=t*8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cometTail[i].x,cometTail[i].y);ctx.lineTo(cometTail[i+1].x,cometTail[i+1].y);ctx.stroke();ctx.restore();}
+    for(let i=0;i<cometTail.length-1;i++){const t=i/cometTail.length;ctx.save();ctx.globalAlpha=t*0.6;ctx.strokeStyle=`hsl(${_cometTrailHue+t*30},100%,${60+t*30}%)`;ctx.lineWidth=t*8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cometTail[i].x,cometTail[i].y);ctx.lineTo(cometTail[i+1].x,cometTail[i+1].y);ctx.stroke();ctx.restore();}
     const grd=ctx.createRadialGradient(comet.x,comet.y,2,comet.x,comet.y,comet.radius*2.5);grd.addColorStop(0,'rgba(255,255,255,1)');grd.addColorStop(0.3,'rgba(56,189,248,0.8)');grd.addColorStop(1,'rgba(56,189,248,0)');
     ctx.save();ctx.fillStyle=grd;ctx.beginPath();ctx.arc(comet.x,comet.y,comet.radius*2.5,0,Math.PI*2);ctx.fill();ctx.restore();
     ctx.save();ctx.fillStyle='#ffffff';ctx.shadowColor='#38bdf8';ctx.shadowBlur=15;ctx.beginPath();ctx.arc(comet.x,comet.y,comet.radius*0.6,0,Math.PI*2);ctx.fill();ctx.restore();
@@ -1493,6 +1630,7 @@ function performWormhole(x,y){
     if(engine)engine.enabled=false;
     playSound('blackhole');screenShake(18,500);haptic(80);
     showToast('🌀 WORMHOLE! Space tears open…','#f472b6');
+    earnAchievement('wormhole');
 
     // Remove all planets within wormhole radius
     let consumed=0;
@@ -1627,6 +1765,23 @@ function showEndScreen(dustEarned,wasNewBest){
         updateRankHUD(newRP);
     } else { careerCard.style.display='none'; }
 
+    // Merge chart — bar chart of merges by planet level
+    const chartEl=document.getElementById('merge-chart');
+    const maxMerges=Math.max(1,..._sMergesByLevel);
+    const chartHtml=_sMergesByLevel.map((count,lvl)=>{
+        if(count===0)return'';
+        const pd=PLANET_DATA[lvl];
+        const pct=Math.round(count/maxMerges*100);
+        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <div style="font-size:0.6em;width:48px;text-align:right;opacity:0.7;flex-shrink:0">${pd.name}</div>
+            <div style="flex:1;height:12px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${pd.color==='#000000'?'#888':pd.color};border-radius:4px;transition:width 0.6s;opacity:0.85"></div>
+            </div>
+            <div style="font-size:0.65em;width:20px;text-align:right;opacity:0.6;flex-shrink:0">${count}</div>
+        </div>`;
+    }).filter(Boolean).join('');
+    chartEl.innerHTML=chartHtml||'<div style="font-size:0.7em;opacity:0.4;text-align:center">No merges this run</div>';
+
     document.getElementById('end-screen').style.display='flex';
 }
 function endScreenPlay(){document.getElementById('end-screen').style.display='none';isDailyRun=false;startGame();}
@@ -1662,10 +1817,12 @@ function gameOver(){
     document.getElementById('quick-restart-btn').style.display='none';
     document.getElementById('stardust-hud').style.display='none';
     document.getElementById('top-bar').style.display='none';
+    const pbEl=document.getElementById('pb-label');if(pbEl)pbEl.style.display='none';
     document.getElementById('bottom-bar').style.display='none';
     document.getElementById('evo-bar').style.display='none';
     document.getElementById('session-bar-wrap').style.display='none';
     setNebulaMood('normal');safeSet('sn_last_played',Date.now());
+    checkAchievements(); // evaluate all end-of-run achievements
     showEndScreen(dustEarned,wasNewBest);
 }
 
@@ -1794,8 +1951,17 @@ function startGame(){
     laserMode=false;laserShip=null;laserTargets=[];laserBeams=[];
     reviveUsed=false;_sessionMilestoneIdx=0;doubleScoreMerges=0;
     wormholeActive=false;_wormholeAnim=null;
+    _dropStreakCount=0;_lastDropGhostY=0;
+    _sMergesByLevel=new Array(10).fill(0);
+    _cometTrailHue=190; // reset to default cyan/blue
     gamesPlayed++;_sMerges=0;_sMaxCombo=0;_sFlips=0;_sBestPlanet=0;_runStartTime=Date.now();
     previousBest=(_statsCache||loadStats()).best;
+    // Show personal best indicator if player has a previous score to chase
+    const pbEl=document.getElementById('pb-label'),pbVal=document.getElementById('pb-val');
+    if(previousBest>0&&pbEl&&pbVal){
+        pbEl.style.display='block';
+        pbVal.innerText=previousBest.toLocaleString();
+    } else if(pbEl){ pbEl.style.display='none'; }
 
     // Seed daily RNG if daily run
     if(isDailyRun)seedRNG(getDailySeed());
@@ -1919,7 +2085,39 @@ window.addEventListener('pointerup',e=>{
     if(!gameStarted||isPaused)return;
     if(Date.now()-lastDropTime<600)return;
     if(e.target.closest('.icon-btn,.btn,.shop-btn,#gravity-ui,.toggle,#bottom-bar,#top-bar,#hold-box'))return;
-    spawn(currentX,isFlipped?PLAY_H-100:80,nextLevel,nextIsGlitter);playSound('drop');haptic(8);
+    // Record drop accuracy: compare where player dropped vs ghost prediction
+    const dropX=currentX;
+    const predictedY=calcGhostY(dropX,isFlipped);
+    _lastDropGhostY=predictedY;
+    spawn(dropX,isFlipped?PLAY_H-100:80,nextLevel,nextIsGlitter);playSound('drop');haptic(8);
+    // Accurate drop: dropped within 25px of where ghost was aimed
+    // We check this 400ms later once the planet has started settling
+    const droppedLevel=nextLevel;
+    setTimeout(()=>{
+        if(!gameStarted)return;
+        const r=PLANET_DATA[droppedLevel].r;
+        // Find the most recently dropped body near the predicted landing spot
+        const nearby=Composite.allBodies(engine.world).filter(b=>
+            !b.isStatic&&b.plugin?.lvl===droppedLevel&&
+            Math.abs(b.position.x-dropX)<r*2&&
+            Math.abs(b.position.y-_lastDropGhostY)<r*3
+        );
+        if(nearby.length>0){
+            _dropStreakCount++;
+            if(_dropStreakCount>=5){
+                // Burst of green particles and brief indicator
+                for(let i=0;i<20;i++) particles.push({x:dropX,y:TOP_BAR+40,vx:(Math.random()-0.5)*10,vy:Math.random()*6+2,life:1.0,color:'#4ade80'});
+                const ds=document.getElementById('drop-streak');
+                ds.innerText=`🎯 ${_dropStreakCount} ACCURATE DROPS!`;
+                ds.style.opacity='1';
+                clearTimeout(ds._t);
+                ds._t=setTimeout(()=>{ds.style.opacity='0';},1800);
+                if(_dropStreakCount===5) playSound('milestone');
+            }
+        } else {
+            _dropStreakCount=0; // miss resets streak
+        }
+    },400);
     const dots=document.querySelectorAll('.evo-dot');if(dots[nextLevel])dots[nextLevel].classList.add('active');
     _sBestPlanet=Math.max(_sBestPlanet,nextLevel);
     // Advance preview queue with glitter state
