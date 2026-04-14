@@ -17,7 +17,7 @@
     <!-- Android / Chrome home screen -->
     <meta name="mobile-web-app-capable" content="yes">
 
-    <title>Supernova: Infinity v13.0</title>
+    <title>Supernova: Infinity v14.0</title>
 
     <!-- Service worker registration -->
     <script>
@@ -212,6 +212,11 @@
         #pwa-banner{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(167,139,250,0.2));border:1px solid rgba(56,189,248,0.4);border-radius:20px;padding:12px 20px;z-index:1500;display:none;text-align:center;max-width:320px;backdrop-filter:blur(10px);}
         /* Skin preview row */
         .skin-preview{width:36px;height:36px;border-radius:50%;flex-shrink:0;}
+        /* Reduced motion — disable all animations for accessibility */
+        @media(prefers-reduced-motion:reduce){
+            *{animation-duration:0.01ms!important;transition-duration:0.01ms!important;}
+            #nebula{transition:none!important;}
+        }
         /* Analytics dashboard */
         #analytics-screen{position:fixed;inset:0;background:rgba(1,4,9,0.98);z-index:3000;display:none;flex-direction:column;align-items:center;padding:20px;overflow-y:auto;}
         .analytics-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px;margin-bottom:10px;width:100%;max-width:420px;}
@@ -365,7 +370,7 @@
         <div class="toggle-row"><span>Screen Shake</span><button class="toggle on" id="shake-toggle" onclick="toggleSetting('shake')"></button></div>
         <div class="toggle-row"><span>Particles</span><button class="toggle on" id="particles-toggle" onclick="toggleSetting('particles')"></button></div>
         <div class="toggle-row"><span>Haptic Feedback</span><button class="toggle on" id="haptic-toggle" onclick="toggleSetting('haptic')"></button></div>
-        <p style="font-size:0.7em;opacity:0.4;margin:10px 0 2px">Supernova: Infinity v13.0 · Built with ❤️</p>
+        <p style="font-size:0.7em;opacity:0.4;margin:10px 0 2px">Supernova: Infinity v14.0 · Built with ❤️</p>
         <button class="btn" onclick="hideSettings()">CLOSE</button>
     </div>
 </div>
@@ -561,7 +566,7 @@ const BUG_REPORT_EMAIL = 'your@email.com';                   // support email
 
 /* -------------------------------------------------------------
    VERSION HISTORY
-   v13.0  Achievements (12 badges, sn_achievements storage),
+   v14.0  Achievements (12 badges, sn_achievements storage),
           Merge chart on end screen, planet name flash on merge,
           Accurate drop streak bonus, personal best top-bar label,
           Comet trail colour tied to last choice made,
@@ -621,6 +626,48 @@ const ANOMALY_INTERVAL_MIN=40000, ANOMALY_INTERVAL_MAX=80000, ANOMALY_DURATION=3
 const SESSION_MILESTONES=[5000,10000,20000,35000,50000,75000,100000,150000];
 const LUCKY_DROP_CHANCE=0.03;   // 3% chance to bump drop level +1
 const GLITTER_CHANCE=0.02;      // 2% chance of glitter planet (Captain+ only)
+
+// ── Performance mode ──────────────────────────────────────────────────────────
+// Detect low-end devices and reduce visual load automatically
+const PERF_LOW = navigator.hardwareConcurrency <= 2 ||
+                 /Android [4-6]\./.test(navigator.userAgent);
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+// ── Difficulty director ───────────────────────────────────────────────────────
+// Returns tier 1-4 based on score. Drives comet/anomaly frequency and drop weights.
+function diffTier(){
+    if(score < 8000)  return 1;
+    if(score < 25000) return 2;
+    if(score < 60000) return 3;
+    return 4;
+}
+// Comet interval shrinks as difficulty rises: tier1=35-55s, tier4=15-28s
+function cometInterval(){
+    const t=diffTier();
+    const ranges=[[35000,55000],[28000,44000],[20000,34000],[15000,28000]];
+    const [mn,mx]=ranges[t-1];
+    return mn+Math.random()*(mx-mn);
+}
+// Anomaly interval shrinks: tier1=60-90s, tier4=30-50s
+function anomalyInterval(){
+    const t=diffTier();
+    const ranges=[[60000,90000],[50000,75000],[40000,62000],[30000,50000]];
+    const [mn,mx]=ranges[t-1];
+    return mn+Math.random()*(mx-mn);
+}
+
+// ── Slow-motion state (clutch moments) ───────────────────────────────────────
+let _slowMoActive=false, _slowMoTimer=null;
+function triggerSlowMo(durationMs=1200){
+    if(_slowMoActive||REDUCED_MOTION)return;
+    _slowMoActive=true;
+    if(engine)engine.timing.timeScale=0.35;
+    clearTimeout(_slowMoTimer);
+    _slowMoTimer=setTimeout(()=>{
+        if(engine)engine.timing.timeScale=1;
+        _slowMoActive=false;
+    },durationMs);
+}
 
 // ── Engine globals ────────────────────────────────────────────────────────────
 let engine, render, runner, audioCtx;
@@ -1141,7 +1188,7 @@ function haptic(ms=10){if(settings.haptic&&navigator.vibrate)navigator.vibrate(m
 function reportBug(){
     const bc=engine?Composite.allBodies(engine.world).filter(b=>!b.isStatic).length:0;
     const state={version:'v10.0',timestamp:new Date().toISOString(),score,sessionDust,gamesPlayed,isFlipped,isRankedMode,isDailyRun,bc,anomaly:anomaly?anomaly.type:'none',userAgent:navigator.userAgent,screenSize:`${width}x${height}`};
-    window.location.href=`mailto:${BUG_REPORT_EMAIL}?subject=${encodeURIComponent('Supernova Bug v13.0')}&body=${encodeURIComponent('Describe bug:\n\n'+JSON.stringify(state,null,2))}`;
+    window.location.href=`mailto:${BUG_REPORT_EMAIL}?subject=${encodeURIComponent('Supernova Bug v14.0')}&body=${encodeURIComponent('Describe bug:\n\n'+JSON.stringify(state,null,2))}`;
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -1722,7 +1769,7 @@ function drawLaserShip(ctx){
 }
 
 // ── Comet ─────────────────────────────────────────────────────────────────────
-function scheduleComet(){if(cometTimer)clearTimeout(cometTimer);const d=COMET_INTERVAL_MIN+Math.random()*(COMET_INTERVAL_MAX-COMET_INTERVAL_MIN);cometTimer=setTimeout(()=>{if(gameStarted&&!isPaused)trySpawnComet();else scheduleComet();},d);}
+function scheduleComet(){if(cometTimer)clearTimeout(cometTimer);const d=cometInterval();cometTimer=setTimeout(()=>{if(gameStarted&&!isPaused)trySpawnComet();else scheduleComet();},d);}
 function cometCorridorClear(y,r){const bodies=Composite.allBodies(engine.world).filter(b=>!b.isStatic&&b.plugin?.lvl!==undefined);for(const b of bodies){const br=PLANET_DATA[b.plugin.lvl].r;if(Math.abs(b.position.y-y)<br+r+10)return false;}return true;}
 function trySpawnComet(){const r=14;for(let i=0;i<8;i++){const y=PLAY_H*0.2+Math.random()*PLAY_H*0.45;if(cometCorridorClear(y,r)){spawnComet(y,r);return;}}scheduleComet();}
 function spawnComet(y,r=14){const fromLeft=Math.random()>0.5,angle=(Math.random()*25-12)*(Math.PI/180),speed=COMET_SPEED+Math.random()*2;comet={x:fromLeft?-40:width+40,y,vx:fromLeft?speed*Math.cos(angle):-speed*Math.cos(angle),vy:speed*Math.sin(angle),radius:r,alive:true};cometTail=[];const btn=document.getElementById('comet-btn');btn.style.display='block';btn.style.pointerEvents='auto';updateCometBtn();const crossTime=(width+80)/speed*(1000/60)+500;setTimeout(()=>{if(comet&&comet.alive)dismissComet();},crossTime);}
@@ -1773,7 +1820,7 @@ function drawComet(ctx){
 
 // ── Solar wind ────────────────────────────────────────────────────────────────
 function scheduleAnomaly(){
-    if(anomalyTimer)clearTimeout(anomalyTimer);const d=ANOMALY_INTERVAL_MIN+Math.random()*(ANOMALY_INTERVAL_MAX-ANOMALY_INTERVAL_MIN);anomalyTimer=setTimeout(()=>{if(gameStarted&&!isPaused)warnAnomaly();else scheduleAnomaly();},d);
+    if(anomalyTimer)clearTimeout(anomalyTimer);const d=anomalyInterval();anomalyTimer=setTimeout(()=>{if(gameStarted&&!isPaused)warnAnomaly();else scheduleAnomaly();},d);
 }
 function warnAnomaly(){const w=document.getElementById('anomaly-warn');w.innerText='⚠️ SOLAR WIND INCOMING!';w.style.display='block';setTimeout(()=>{w.style.display='none';startAnomaly();},3000);}
 function startAnomaly(){const dir=Math.random()>0.5?1:-1;anomaly={type:'solar_wind',dir,force:0.0003,endTime:Date.now()+ANOMALY_DURATION};const b=document.getElementById('anomaly-banner');b.innerText=`🌬️ SOLAR WIND — pushing ${dir>0?'RIGHT':'LEFT'}`;b.style.display='block';setNebulaMood('wind');}
@@ -2162,7 +2209,10 @@ function startGame(){
     wormholeActive=false;_wormholeAnim=null;
     _dropStreakCount=0;_lastDropGhostY=0;
     _sMergesByLevel=new Array(10).fill(0);
-    _cometTrailHue=190; // reset to default cyan/blue
+    _cometTrailHue=190;
+    if(_slowMoTimer)clearTimeout(_slowMoTimer);
+    _slowMoActive=false;
+    if(engine)engine.timing.timeScale=1; // always reset on new game
     gamesPlayed++;_sMerges=0;_sMaxCombo=0;_sFlips=0;_sBestPlanet=0;_runStartTime=Date.now();
     _anSessionStart=Date.now();
     const _anMode=isDailyRun?'daily':isRankedMode?'ranked':'free';
@@ -2245,7 +2295,13 @@ function initEvents(){
         const ghostY=calcGhostY(currentX,isFlipped);drawPlanet(ctx,currentX,ghostY,nextLevel,0,0.18);
         ctx.setLineDash([3,5]);ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(currentX,isFlipped?PLAY_H-100:100);ctx.lineTo(currentX,ghostY);ctx.stroke();
         ctx.setLineDash([10,10]);ctx.strokeStyle='rgba(239,68,68,0.5)';ctx.beginPath();ctx.moveTo(0,limitY);ctx.lineTo(width,limitY);ctx.stroke();ctx.restore();
-        if(settings.particles){particles=particles.filter(p=>p.life>0);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.02;ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();ctx.restore();});}
+        if(settings.particles&&!PERF_LOW){particles=particles.filter(p=>p.life>0);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.02;ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();ctx.restore();});}
+        else if(settings.particles&&PERF_LOW){// low-end: max 20 particles, faster decay
+            particles=particles.filter(p=>p.life>0);
+            const cap=particles.slice(-20);
+            cap.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.04;ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();ctx.restore();});
+            particles=cap;
+        }
         drawComet(ctx);drawLaserShip(ctx);drawWormhole(ctx);
         // Compute board density once, outside the per-body loop
         const boardCount=Composite.allBodies(engine.world).filter(b=>!b.isStatic).length;
@@ -2275,14 +2331,25 @@ function initEvents(){
             }else{b.plugin.warn=0;}
         });
         const dangerEl=document.getElementById('danger-alert');dangerEl.style.display=danger?'block':'none';dangerEl.style.top=isFlipped?(height-BOT_BAR-60)+'px':(TOP_BAR+10)+'px';
-        if(danger!==dangerActive){dangerActive=danger;setNebulaMood(danger?'danger':anomaly?'wind':isFlipped?'flipped':'normal');}
+        if(danger!==dangerActive){
+            dangerActive=danger;
+            setNebulaMood(danger?'danger':anomaly?'wind':isFlipped?'flipped':'normal');
+            if(danger&&!_slowMoActive)triggerSlowMo(1400); // clutch moment — brief slow-mo
+        }
         const rechargeRate=200*gravSpeedBonus();if(gravityCharge<CHARGE_TIME)gravityCharge+=rechargeRate;
         document.getElementById('g-progress').style.clipPath=`inset(${100-gravityCharge/CHARGE_TIME*100}% 0 0 0)`;
     });
 }
 
 // ── Input ─────────────────────────────────────────────────────────────────────
-window.addEventListener('pointermove',e=>{currentX=e.clientX;});
+let _rawX=width/2; // unsmoothed pointer X
+window.addEventListener('pointermove',e=>{_rawX=e.clientX;});
+// Smooth currentX toward _rawX — reduces jitter, improves feel
+// Run in rAF so it's independent of physics tick rate
+(function smoothInput(){
+    currentX+=((_rawX-currentX)*0.35); // lerp factor: 0.35 = responsive but smooth
+    requestAnimationFrame(smoothInput);
+})();
 window.addEventListener('pointerup',e=>{
     if(laserMode){
         if(e.target.closest('#laser-cancel'))return;
@@ -2302,6 +2369,18 @@ window.addEventListener('pointerup',e=>{
     const predictedY=calcGhostY(dropX,isFlipped);
     _lastDropGhostY=predictedY;
     spawn(dropX,isFlipped?PLAY_H-100:80,nextLevel,nextIsGlitter);playSound('drop');haptic(8);
+    // Skill shot: if drop X is within 1 planet-radius of ghost X, instant +50 bonus
+    const ghostXNow=dropX; // ghost tracks currentX so they're the same at drop moment
+    // Perfect aim = within half a planet radius of dead centre of ghost column
+    const perfectThreshold=PLANET_DATA[nextLevel].r*0.9;
+    if(Math.abs(_rawX-dropX)<perfectThreshold){
+        score+=50;
+        const scoreEl=document.getElementById('score-label');
+        scoreEl.innerText=score.toLocaleString();
+        if(settings.particles){
+            for(let i=0;i<8;i++) particles.push({x:dropX,y:isFlipped?PLAY_H-110:90,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*6-2,life:0.8,color:'#fbbf24'});
+        }
+    }
     // Accurate drop: dropped within 25px of where ghost was aimed
     // We check this 400ms later once the planet has started settling
     const droppedLevel=nextLevel;
@@ -2500,6 +2579,12 @@ function anTrack(event, value) {
                 Object.keys(d.sessionsByDay).forEach(k=>{ if(k<cutoff) delete d.sessionsByDay[k]; });
                 Object.keys(d.scoresByDay).forEach(k=>{ if(k<cutoff) delete d.scoresByDay[k]; });
                 d.modeUsage[value] = (d.modeUsage[value]||0) + 1;
+                // Session reward: 3rd game of the day earns bonus stardust
+                if(d.sessionsByDay[today]===3){
+                    const stats=safeGet('sn_v10')||{best:0,dust:0,discovered:2,rp:0};
+                    stats.dust+=150;safeSet('sn_v10',stats);_statsCache=stats;
+                    setTimeout(()=>{refreshDustHUD();showToast('🎁 3 games today! +150✨ bonus!','var(--gold)');},800);
+                }
                 break;
             case 'session_end':
                 if(!d.scoresByDay[today]) d.scoresByDay[today] = [];
