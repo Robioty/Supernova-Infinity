@@ -243,3 +243,103 @@ See the comment block at the top of the `<script>` tag in `index.html` for the f
 - **localStorage** — all persistence, no backend
 - **CSS custom properties** — theming via `--accent`, `--gold`, `--danger`, `--success`, `--wind`
 - No framework. No build tools. No dependencies beyond Matter.js.
+
+---
+
+## 🗺️ Developer Game Map (for Claude — reference instead of re-reading file)
+
+**File:** `index.html` | **Size:** ~171k chars | **Game script:** scripts[2], ~125k chars | **Scripts:** 3 (SW reg, empty, game)
+
+**Style:** 1 `<style>` tag, closes before `</head>`. If black screen → check `</style>` present.
+
+**Syntax check:** `python3 -c "import re; scripts=re.findall(r'<script[^>]*>(.*?)</script>', open('index.html').read(), re.DOTALL); open('/tmp/g.js','w').write(scripts[2])"` then `node --check /tmp/g.js`
+
+### Function locations (char offset in game script)
+
+```
+getRankFromRP:5714  getRankIndex:5827  safeGet:9880  safeSet:9998
+loadStats:10194  totalGamesEver:10778  saveStats:10856  refreshDustHUD:11065
+updateRankHUD:11311  updateNextUnlockHint:11677
+getAchievements:13337  earnAchievement:13404  checkAchievements:13721
+showAchievements:14668  hideAchievements:15326  checkIdleDust:15424
+calcRPChange:16047  applyRPChange:16548  setMode:17093
+seedRNG:17518  rng:17566  getDailySeed:17785  startDailyRun:18050
+getDailyRunStatus:18192  updateDailyRunUI:18378
+glitterUnlocked:18977  shouldBeGlitter:19056  getNextPlanetLevel:19187
+showLeaderboard:20234  hideLeaderboard:21281  showRankScreen:21460  hideRankScreen:22504
+checkDailyBonus:22675  updateStreakDisplay:23585  shareScore:23975
+formatRunTime:24553  generateRunHighlight:24757
+getConstLevels:27525  getConstLevel:27584  constCost:27645
+gravSpeedBonus:27740  comboGraceBonus:27810  dustBonus:27879  dangerTimeBonus:27944
+happyFacesEnabled:28014  fartSoundsEnabled:28144  cheekyBumEnabled:28274
+activeSkin:28601  toggleCosmeticSetting:28840  showConstellation:29100
+hideConstellation:30979  buyConst:31079  initMissions:32452  trackMission:33183
+showMissions:33788  hideMissions:34582  loadSettings:34755  toggleSetting:34994
+showSettings:35186  hideSettings:35310  showHowToPlay:35398  openTipJar:35572
+haptic:35713  reportBug:35881  showToast:36516  playSound:36861
+ensureAudioCtx:41102  playFart:41441  screenShake:45877  screenFlash:46284
+setNebulaMood:46509  updateSessionBar:47108  drawPlanet:47736
+drawGlitterOverlay:55477  drawPreviewCanvas:56250  updatePreview:56909
+activateHold:57222  spawn:58086  createExplosion:58310
+performGlitterMerge:58571  performMerge:60122  flashNewBest:63829
+flashPlanetName:64098  updateComboMeter:64470  nearMissSave:65026
+buyPowerUp:66171  buySeismic:66813  buyLaserStrike:67478
+cancelLaser:68146  fireLaser:68300  flipGravity:68804  quickRestart:69223
+drawLaserShip:69420  scheduleComet:71298  cometCorridorClear:71540
+trySpawnComet:71794  spawnComet:71967  updateCometBtn:72489
+catchComet:72654  cometChoice:73225  _dismissComet:74208  drawComet:74420
+scheduleAnomaly:75894  warnAnomaly:76156  startAnomaly:76353
+stopAnomaly:76651  applyAnomaly:76794  startBlackHole:77456
+performWormhole:79324  drawWormhole:80825  calcGhostY:82391
+showEndScreen:82963  endScreenPlay:87745  endScreenHome:87860
+togglePause:88118  confirmAbandon:88468  restartMission:88618  gameOver:88767
+renderDiscoveryLog:90785  startTutorial:94079  showTutStep:94279
+tutNext:95145  endTutorial:95249  replayTutorial:95627  startGame:95825
+initEvents:99760
+getPilotName:109458  savePilotName:109520  saveSettingsPilotName:109809
+updatePilotNameDisplay:110149  checkPilotName:110394
+showPassPlay:111127  hidePassPlay:111217  startPassPlay:111307
+showPPTurnBanner:111695  ppTurnGo:112120  ppEndTurn:112234
+pwaBannerInstall:114395  pwaBannerDismiss:114582
+anGet:115065  anSave:115930  anTrack:116046  handleTitleTap:118495
+showAnalytics:118734  hideAnalytics:124456  analyticsExport:124548  analyticsReset:125240
+```
+
+### Key constants (char offset in game script)
+```
+CHARGE_TIME:3817  COMET_INTERVAL_MIN:3906  ANOMALY_INTERVAL_MIN:4060
+SESSION_MILESTONES:4146  LUCKY_DROP_CHANCE:4223  GLITTER_CHANCE:4290
+BH_CAPTURE_R:77321  BH_PULL_FORCE:77389  WORMHOLE_RADIUS:79206
+AN_KEY:114922  PP_TURNS_PER_PLAYER:111063
+```
+
+### localStorage keys
+```
+sn_v10          — best, dust, discovered, rp, totalGames
+sn_const        — constellation levels {id: level}
+sn_cosmetic_toggles — {happy_faces, fart_sounds, cheeky_bum, skin_* : bool}
+sn_settings     — {sfx, shake, particles, haptic}
+sn_achievements — {achievement_id: timestamp}
+sn_analytics    — full analytics object (see anGet() for schema)
+sn_streak       — {count, last: dateStr}
+sn_daily        — dateStr of last bonus claim
+sn_daily_run    — {date, score}
+sn_missions     — {date, missions[], progress{}}
+sn_last_played  — timestamp
+sn_tutdone      — bool
+sn_pilot_name   — string
+sn_pp_names     — [p1name, p2name]
+sn_pwa_dismissed — bool
+```
+
+### Critical patterns to know
+- **PLANET_DATA[9]** = Vortex (blackhole:true, r:31) — no smiley/bum/skin overlays
+- **PLANET_DATA[8]** = Nullar (singularity:true) — no smiley/bum overlays, skin OK
+- **cosmeticIds** in showConstellation: `['happy_faces','fart_sounds','cheeky_bum','skin_rainbow','skin_fire','skin_ice','skin_neon','skin_galaxy','skin_gold']`
+- **activeSkin()** returns first toggled-on purchased skin from SKIN_IDS array
+- **anTrack(event, value?)** — wraps in try/catch, never throws
+- **All boots** end with `checkPilotName()` call
+- **gameOver** calls `checkAchievements()` then `ppEndTurn(score)` if ppActive, else showEndScreen
+- **performMerge** intercepts nl>=PLANET_DATA.length → performWormhole()
+- **beforeUpdate** hook applies BH pull force + anomaly
+- **afterRender** hook draws ghost, danger line, particles, comet, laser, wormhole anim, planets, BH rings
