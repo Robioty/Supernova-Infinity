@@ -87,7 +87,7 @@
         #combo-popup{position:fixed;top:38%;left:50%;transform:translateX(-50%);font-size:2.2em;color:var(--gold);font-weight:900;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:1100;text-shadow:0 0 20px var(--gold);}
         #combo-popup.mega{font-size:3em;color:#f472b6;text-shadow:0 0 30px #f472b6;}
         #screen-flash{position:fixed;inset:0;background:white;pointer-events:none;opacity:0;z-index:1050;transition:opacity 0.1s;}
-        #toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:white;padding:10px 22px;border-radius:20px;font-weight:900;z-index:3000;opacity:0;transition:opacity 0.4s;pointer-events:none;border:1px solid rgba(255,255,255,0.1);max-width:90%;text-align:center;}
+        #toast{position:fixed;top:88px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.9);color:white;padding:10px 22px;border-radius:20px;font-weight:900;z-index:3000;opacity:0;transition:opacity 0.4s;pointer-events:none;border:1px solid rgba(255,255,255,0.1);max-width:80%;text-align:center;}
         #new-best{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2em;font-weight:900;color:var(--gold);text-shadow:0 0 30px var(--gold);pointer-events:none;opacity:0;z-index:1200;text-align:center;}
         #near-miss-banner{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%);font-size:1.6em;font-weight:900;color:var(--success);text-shadow:0 0 20px var(--success);pointer-events:none;opacity:0;z-index:1200;text-align:center;transition:opacity 0.3s;}
         #daily-run-badge{position:fixed;top:84px;left:12px;background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.5);color:var(--gold);font-size:0.6em;font-weight:900;padding:3px 10px;border-radius:10px;z-index:998;display:none;pointer-events:none;letter-spacing:1px;}
@@ -222,8 +222,8 @@
         .mod-card-desc{font-size:0.74em;opacity:0.6;margin-top:3px;line-height:1.4;}
         .mod-card-type{font-size:0.58em;font-weight:900;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:5px;}
         /* Active mods HUD pill strip */
-        #active-mods-hud{position:fixed;top:86px;right:10px;display:flex;flex-direction:column;gap:3px;z-index:996;pointer-events:none;}
-        .mod-pip{font-size:0.6em;font-weight:900;padding:2px 7px;border-radius:8px;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.15);white-space:nowrap;}
+        #active-mods-hud{position:fixed;top:114px;right:8px;display:flex;flex-direction:column;gap:3px;z-index:996;pointer-events:none;max-width:130px;}
+        .mod-pip{font-size:0.58em;font-weight:900;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,0.82);border:1px solid rgba(255,255,255,0.15);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         /* Reduced motion — disable all animations for accessibility */
         @media(prefers-reduced-motion:reduce){
             *{animation-duration:0.01ms!important;transition-duration:0.01ms!important;}
