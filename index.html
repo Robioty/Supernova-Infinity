@@ -30,6 +30,52 @@
       }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+    <!-- Firebase — module script exposes window.fb* bridge to game script -->
+    <script type="module">
+      import { initializeApp }          from 'https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js';
+      import { getAnalytics, logEvent } from 'https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js';
+      import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp }
+                                        from 'https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js';
+      const firebaseConfig = {
+        apiKey:            'AIzaSyCuZPnVHNlzGhSImAI2ejxhHF-3Ve1TERY',
+        authDomain:        'supernova-infinity.firebaseapp.com',
+        projectId:         'supernova-infinity',
+        storageBucket:     'supernova-infinity.firebasestorage.app',
+        messagingSenderId: '1034608398345',
+        appId:             '1:1034608398345:web:e19938c2e19c59b9aaa8d8',
+        measurementId:     'G-1B3X85HMVR'
+      };
+      try {
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        const LB = 'leaderboard';
+        // Submit a ranked score
+        window.fbSubmitScore = async (name, score, rp) => {
+          if(!name||score<=0) return;
+          try { await addDoc(collection(db,LB),{name,score,rp,ts:serverTimestamp()}); }
+          catch(e){ console.warn('[FB] submit:',e.message); }
+        };
+        // Fetch top 20 scores
+        window.fbGetLeaderboard = async () => {
+          try {
+            const snap = await getDocs(query(collection(db,LB),orderBy('score','desc'),limit(20)));
+            return snap.docs.map(d=>({...d.data(),id:d.id}));
+          } catch(e){ console.warn('[FB] fetch:',e.message); return null; }
+        };
+        // Log Analytics event
+        window.fbLogEvent = (name,params) => { try{logEvent(analytics,name,params);}catch(e){} };
+        window.fbReady = true;
+        console.log('[FB] Firebase ready');
+      } catch(e) {
+        console.warn('[FB] init failed:',e.message);
+        window.fbSubmitScore    = async()=>{};
+        window.fbGetLeaderboard = async()=>null;
+        window.fbLogEvent       = ()=>{};
+        window.fbReady          = false;
+      }
+    </script>
     <style>
         :root{--accent:#38bdf8;--gold:#fbbf24;--danger:#ef4444;--glass:rgba(255,255,255,0.08);--success:#4ade80;--wind:#a78bfa;}
         *{box-sizing:border-box;}
@@ -851,7 +897,7 @@ function earnAchievement(id){
     earned[id]=Date.now();
     safeSet('sn_achievements',earned);
     const ach=ACHIEVEMENTS.find(a=>a.id===id);
-    if(ach){showToast(`🏅 Achievement: ${ach.title}!`,'var(--gold)');playSound('achieve');}
+    if(ach){showToast(`🏅 Achievement: ${ach.title}!`,'var(--gold)');playSound('achieve');if(window.fbLogEvent)window.fbLogEvent('achievement_earned',{id:ach.id});}
 }
 function checkAchievements(){
     // Called at end of run and at key moments — checks run stats
@@ -991,19 +1037,39 @@ function getNextPlanetLevel(){
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 function showLeaderboard(){
-    const myBest=(_statsCache||{best:0}).best,myRP=(_statsCache||{rp:0}).rp||0;
-    const all=[...COMMUNITY_PLAYERS,{name:'You',score:myBest,rp:myRP,isYou:true}];
-    all.sort((a,b)=>b.score-a.score);
-    const list=document.getElementById('lb-list');list.innerHTML='';
-    all.forEach((p,i)=>{
-        const rank=getRankFromRP(p.rp);
-        const row=document.createElement('div');row.className='lb-row'+(p.isYou?' lb-you':'');
-        const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
-        const displayName=p.isYou?(getPilotName()||'YOU'):'';
-        row.innerHTML=`<div class="lb-pos">${medal}</div><div class="lb-body"><div class="lb-name">${p.isYou?`<b>${displayName}</b>`:p.name}</div><div class="lb-meta"><span class="lb-rank-tag" style="color:${rank.color};border-color:${rank.border}">${rank.icon} ${rank.name}</span><span class="lb-score">${p.score.toLocaleString()}</span></div></div>`;
-        list.appendChild(row);
-    });
     document.getElementById('leaderboard-screen').style.display='flex';
+    const list=document.getElementById('lb-list');
+    list.innerHTML='<div style="text-align:center;opacity:0.4;padding:20px;font-size:0.85em">Loading scores…</div>';
+    const myBest=(_statsCache||{best:0}).best,myRP=(_statsCache||{rp:0}).rp||0;
+    const myName=getPilotName()||'YOU';
+    function renderBoard(players){
+        // Merge player in, deduplicate by name keeping highest score
+        const all=[...players,{name:myName,score:myBest,rp:myRP,isYou:true}];
+        const deduped=Object.values(all.reduce((acc,p)=>{
+            if(!acc[p.name]||p.score>acc[p.name].score)acc[p.name]=p;return acc;
+        },{}));
+        deduped.sort((a,b)=>b.score-a.score);
+        list.innerHTML='';
+        deduped.slice(0,21).forEach((p,i)=>{
+            const rank=getRankFromRP(p.rp||0);
+            const row=document.createElement('div');row.className='lb-row'+(p.isYou?' lb-you':'');
+            const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+            row.innerHTML=`<div class="lb-pos">${medal}</div><div class="lb-body"><div class="lb-name">${p.isYou?`<b>${p.name}</b>`:p.name}</div><div class="lb-meta"><span class="lb-rank-tag" style="color:${rank.color};border-color:${rank.border}">${rank.icon} ${rank.name}</span><span class="lb-score">${p.score.toLocaleString()}</span></div></div>`;
+            list.appendChild(row);
+        });
+    }
+    if(window.fbGetLeaderboard){
+        window.fbGetLeaderboard().then(fb=>{
+            if(fb&&fb.length>0){ renderBoard(fb); }
+            else {
+                renderBoard(COMMUNITY_PLAYERS);
+                const note=document.createElement('div');
+                note.style.cssText='font-size:0.65em;opacity:0.35;text-align:center;padding:8px 0';
+                note.innerText='Play Ranked games to appear on the real leaderboard';
+                list.appendChild(note);
+            }
+        });
+    } else { renderBoard(COMMUNITY_PLAYERS); }
 }
 function hideLeaderboard(){document.getElementById('leaderboard-screen').style.display='none';}
 
@@ -2124,6 +2190,12 @@ function gameOver(){
     document.getElementById('session-bar-wrap').style.display='none';
     setNebulaMood('normal');safeSet('sn_last_played',Date.now());
     checkAchievements();
+    // Submit to Firebase on ranked games
+    if(isRankedMode&&!isDailyRun&&score>0){
+        const n=getPilotName()||'Anonymous',rp=(_statsCache||{rp:0}).rp||0;
+        if(window.fbSubmitScore)window.fbSubmitScore(n,score,rp);
+        if(window.fbLogEvent)window.fbLogEvent('ranked_game_end',{score,rp});
+    }
     // Pass & Play: redirect end-of-game flow
     if(ppActive){ppEndTurn(score);return;}
     // PWA: show banner after 2nd game if not dismissed
@@ -2862,6 +2934,7 @@ function anTrack(event, value) {
                 Object.keys(d.sessionsByDay).forEach(k=>{ if(k<cutoff) delete d.sessionsByDay[k]; });
                 Object.keys(d.scoresByDay).forEach(k=>{ if(k<cutoff) delete d.scoresByDay[k]; });
                 d.modeUsage[value] = (d.modeUsage[value]||0) + 1;
+                if(window.fbLogEvent)window.fbLogEvent('game_session_start',{mode:value,total:d.totalSessions});
                 // Session reward: 3rd game of the day earns bonus stardust
                 if(d.sessionsByDay[today]===3){
                     const stats=safeGet('sn_v10')||{best:0,dust:0,discovered:2,rp:0};
@@ -2876,6 +2949,7 @@ function anTrack(event, value) {
                 const dur = Math.round((Date.now()-_anSessionStart)/1000);
                 d.gameDurations.push(dur);
                 if(d.gameDurations.length > 50) d.gameDurations = d.gameDurations.slice(-50);
+                if(window.fbLogEvent)window.fbLogEvent('game_session_end',{score:value.score,duration_s:dur});
                 break;
             case 'game_over_cause':
                 d.gameOverCauses[value] = (d.gameOverCauses[value]||0) + 1;
